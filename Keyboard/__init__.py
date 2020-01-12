@@ -6,12 +6,7 @@ from pynput.keyboard import Key, Listener
 
 
 class Keyboard():
-    def __init__(self, name):
-        self.keyName = name
-        self.colorActive = list()
-        self.timeActive = 0
-        self.timeSleep = 0
-        self.handleBox = list()
+    def __init__(self):
         self.listKeyCode = {
             '0': 48, '1': 49, '2': 50, '3': 51, '4': 52,
             '5': 53, '6': 54, '7': 55, '8': 56, '9': 57,
@@ -26,18 +21,10 @@ class Keyboard():
         }
 
     def ControlSend(self, hwnd, key):
-        """ Send a key to windows, accept it running on background"""
+        """ Send a key to windows, include it running on background"""
         if key in self.listKeyCode.keys():
             keyhex = self.listKeyCode[key]
             win32gui.PostMessage(hwnd, win32con.WM_KEYDOWN, keyhex, 0)
             return win32gui.PostMessage(hwnd, win32con.WM_KEYUP, keyhex, 0)
         else:
-            pass
-
-    def CheckColor(self):
-        """ Check the color is assign to the a key"""
-        pass
-
-    def CheckTime(self):
-        """ Check the time is assign to the a key"""
-        pass
+            print("The %s is not in list key (0-9,numpad, f1-f12)")

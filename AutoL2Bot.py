@@ -2,27 +2,83 @@ import os
 import sys
 import time
 import ctypes
+import wx
+import threading
 import keyboard
-from Color import *
-from Keyboard import *
-from Gui import *
+from Color import Color
+from Keyboard import Keyboard
+from Gui import UserGui
 
-listKeyboard = list()
-objColor = Color()
-objGui = Gui()
 
-def add_window(value):
-    listKeyboard[value].handleBox = objGui.GetHWND()
+def ColorCheckThread():
+    try:
+        while True:
+            if objGui.tab["RunCheck"] :
+                for i in range(1,10):
+                    if objGui.tab["Tab %s" % i]["ColorCheckBox"].GetValue():
+                        for color in objGui.tab["Tab %s" % i]["Color"]:
+                            if (not objColor.CheckPixelColor(color)) and objGui.tab["Handler"]:
+                                for hwnd in objGui.tab["Handler"]:
+                                    objKeyBoard.ControlSend(hwnd, objGui.tab["Tab %s" % i]["Key"].GetValue())
+                                time.sleep(1)
+    except NameError as er:
+        print("Error is: %s" % (er))
 
-def add_color(value):
-    listKeyboard[value].colorActive.append(objColor.GetPixelColor())
+def RepeatKeyThread():
+    try:
+        while True:
+            if objGui.tab["RunCheck"] :
+                for i in range(1,10):
+                    if objGui.tab["Tab %s" % i]["RepeatKeyBox"].GetValue():
+                        cdtime = int(float(objGui.tab["Tab %s" % i]["Time"].GetValue()))
+                        if cdtime > 0:
+                            lhtime = objGui.tab["Tab %s" % i]["LastHitTime"]
+                            if (lhtime + cdtime) < time.time():
+                                lhtime = objGui.tab["Tab %s" % i]["LastHitTime"] = time.time()
+                                for hwnd in objGui.tab["Handler"]:
+                                    objKeyBoard.ControlSend(hwnd, objGui.tab["Tab %s" % i]["Key"].GetValue())
+                                    sltime = int(float(objGui.tab["Tab %s" % i]["Sleep"].GetValue()))
+                                time.sleep(sltime)
+    except NameError as er:
+        print("Error is: %s" % (er))
 
-keyboard.add_hotkey("ctrl+1",add_color,args=[0])
-if __name__ == '__main__':
-    if ctypes.windll.shell32.IsUserAnAdmin():
-        for i in range(9):
-            name = "f" + str(i + 1)
-            listKeyboard.append(Keyboard(name))
-            add_window(i)
+def HotKeyRegistry():
+    for i in range(1,10):
+        keyboard.add_hotkey('ctrl+%s' % i, AddColor, args=[i])
+        shortkey = "f%s" % i
+        keyboard.add_hotkey('f%s' % i, ControlSend, args=[shortkey])
+    keyboard.wait("ctrl+esc")
 
-keyboard.wait('shift+esc')
+def AddColor(value):
+    objGui.tab["Tab %s" % value]["Color"].append(   
+        objColor.GetPixelColor()
+    )
+
+def ControlSend(value):
+    if objGui.tab["RunCheck"]:
+        for hwnd in objGui.tab["Handler"]:
+            objKeyBoard.ControlSend(hwnd, value)
+
+if __name__ == '__main__' and ctypes.windll.shell32.IsUserAnAdmin():
+    # Thuc hien threading o day
+    global objColor, objGui, objKeyBoard, app
+    objColor = Color()
+    objKeyBoard = Keyboard()
+
+
+    app = wx.App(False)
+    objGui = UserGui(None, "AutoL2Python")
+    # Khai bao cac threading tai day
+    tcolor = threading.Thread(target= ColorCheckThread)
+    tcolor.start()
+    trepeat = threading.Thread(target= RepeatKeyThread)
+    trepeat.start()
+    thotkey = threading.Thread(target= HotKeyRegistry)
+    thotkey.start()
+    app.MainLoop()
+
+    # Ket thuc threading
+    tcolor.join()
+    trepeat.join()
+    thotkey.join()
+    #AA
