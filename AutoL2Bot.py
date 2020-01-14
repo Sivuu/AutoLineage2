@@ -5,6 +5,7 @@ import ctypes
 import wx
 import threading
 import keyboard
+import win32gui
 from Color import Color
 from Keyboard import Keyboard
 from Gui import UserGui
@@ -15,11 +16,14 @@ def ColorCheckThread():
         while True:
             if objGui.tab["RunCheck"] :
                 for i in range(1,10):
-                    if objGui.tab["Tab %s" % i]["ColorCheckBox"].GetValue():
+                    if objGui.tab["Tab %s" % i]["ColorCheckBox"].GetValue() and objGui.tab["Tab %s" % i]["Color"]:
                         for color in objGui.tab["Tab %s" % i]["Color"]:
                             if (not objColor.CheckPixelColor(color)) and objGui.tab["Handler"]:
                                 for hwnd in objGui.tab["Handler"]:
-                                    objKeyBoard.ControlSend(hwnd, objGui.tab["Tab %s" % i]["Key"].GetValue())
+                                    if win32gui.IsWindowVisible(hwnd):
+                                        objKeyBoard.ControlSend(hwnd, objGui.tab["Tab %s" % i]["Key"].GetValue())
+                                    else:
+                                        objGui.tab["Handler"] = objGui.GetHWND()
                                 time.sleep(1)
     except NameError as er:
         print("Error is: %s" % (er))

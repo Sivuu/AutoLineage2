@@ -44,7 +44,7 @@ class UserGui(wx.Frame):
             self.tab["Tab %s" % (i+1)]["LastHitTime"] = time.time()
             # Sleep time
             self.tab["Tab %s" % (i+1)]["LabelSleep"] = wx.StaticText(self.tab["Tab %s" % (i+1)]["Panel"],  wx.ID_ANY, "Sleep Time %s" % (i+1), pos=(5, 90), size=(80, 30))
-            self.tab["Tab %s" % (i+1)]["Sleep"] = wx.TextCtrl(self.tab["Tab %s" % (i+1)]["Panel"], wx.ID_ANY, "1", pos=( 95, 85), size=(80, 30))
+            self.tab["Tab %s" % (i+1)]["Sleep"] = wx.TextCtrl(self.tab["Tab %s" % (i+1)]["Panel"], wx.ID_ANY, "2", pos=( 95, 85), size=(80, 30))
 
             # Check box to active
             self.tab["Tab %s" % (i+1)]["ColorCheckBox"] = wx.CheckBox(self.tab["Tab %s" % (i+1)]["Panel"], wx.ID_ANY, "Color Check", pos=(5, 125))

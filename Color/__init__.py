@@ -19,13 +19,16 @@ class Color():
         return ret
 
     def CheckPixelColor(self, cdict):
-        hwnd = win32gui.GetActiveWindow()
-        hwndDC = win32gui.GetDC(hwnd)
-        mColor = win32gui.GetPixel(hwndDC, cdict["x"], cdict["y"])
-        cColor = cdict["color"]
-        if mColor == cColor:
-            win32gui.ReleaseDC(hwnd, hwndDC)
-            return True
-        else:
-            win32gui.ReleaseDC(hwnd, hwndDC)
+        try:
+            hwnd = win32gui.GetActiveWindow()
+            hwndDC = win32gui.GetDC(hwnd)
+            mColor = win32gui.GetPixel(hwndDC, cdict["x"], cdict["y"])
+            cColor = cdict["color"]
+            if mColor == cColor:
+                win32gui.ReleaseDC(hwnd, hwndDC)
+                return True
+            else:
+                win32gui.ReleaseDC(hwnd, hwndDC)
+                return False
+        except:
             return False
