@@ -39,9 +39,12 @@ def RepeatKeyThread():
                             lhtime = objGui.tab["Tab %s" % i]["LastHitTime"]
                             if (lhtime + cdtime) < time.time():
                                 lhtime = objGui.tab["Tab %s" % i]["LastHitTime"] = time.time()
+                                sltime = int(float(objGui.tab["Tab %s" % i]["Sleep"].GetValue()))
                                 for hwnd in objGui.tab["Handler"]:
-                                    objKeyBoard.ControlSend(hwnd, objGui.tab["Tab %s" % i]["Key"].GetValue())
-                                    sltime = int(float(objGui.tab["Tab %s" % i]["Sleep"].GetValue()))
+                                    if win32gui.IsWindowVisible(hwnd):
+                                        objKeyBoard.ControlSend(hwnd, objGui.tab["Tab %s" % i]["Key"].GetValue())
+                                    else:
+                                        objGui.tab["Handler"] = objGui.GetHWND()
                                 time.sleep(sltime)
     except NameError as er:
         print("Error is: %s" % (er))

@@ -79,7 +79,8 @@ class UserGui(wx.Frame):
 
     def CallBack(self, hwnd, hwnds):
         """Return a list of window handlers based on it class name"""
-        if win32gui.GetClassName(hwnd) == "L2UnrealWWindowsViewportWindow":
+        if win32gui.GetClassName(hwnd) == "L2UnrealWWindowsViewportWindow"\
+            or win32gui.GetClassName(hwnd) == "l2UnrealWWindowsViewportWindow":
             hwnds.append(hwnd)
         return True
 

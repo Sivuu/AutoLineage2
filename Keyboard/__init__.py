@@ -22,12 +22,10 @@ class Keyboard():
 
     def ControlSend(self, hwnd, key):
         """ Send a key to windows, include it running on background"""
-        if win32gui.IsWindowVisible(hwnd):
-            if key in self.listKeyCode.keys():
-                keyhex = self.listKeyCode[key]
-                win32gui.PostMessage(hwnd, win32con.WM_KEYDOWN, keyhex, 0)
-                return win32gui.PostMessage(hwnd, win32con.WM_KEYUP, keyhex, 0)
-            else:
-                print("The %s is not in list key (0-9,numpad, f1-f12)")
+        if key in self.listKeyCode.keys():
+            keyhex = self.listKeyCode[key]
+            win32gui.PostMessage(hwnd, win32con.WM_KEYDOWN, keyhex, 0)
+            return win32gui.PostMessage(hwnd, win32con.WM_KEYUP, keyhex, 0)
         else:
-            pass
+            print("The %s is not in list key (0-9,numpad, f1-f12)")
+
