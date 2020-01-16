@@ -13,14 +13,14 @@ from Gui import UserGui
 
 def ColorCheckThread():
     try:
-        while True:
+        while objGui:
             if objGui.tab["RunCheck"] :
                 for i in range(1,10):
                     if objGui.tab["Tab %s" % i]["ColorCheckBox"].GetValue() and objGui.tab["Tab %s" % i]["Color"]:
                         for color in objGui.tab["Tab %s" % i]["Color"]:
                             if (not objColor.CheckPixelColor(color)) and objGui.tab["Handler"]:
                                 for hwnd in objGui.tab["Handler"]:
-                                    if win32gui.IsWindowVisible(hwnd):
+                                    if objGui.tab[hwnd] and win32gui.IsWindowVisible(hwnd):
                                         objKeyBoard.ControlSend(hwnd, objGui.tab["Tab %s" % i]["Key"].GetValue())
                                     else:
                                         objGui.tab["Handler"] = objGui.GetHWND()
@@ -30,7 +30,7 @@ def ColorCheckThread():
 
 def RepeatKeyThread():
     try:
-        while True:
+        while objGui:
             if objGui.tab["RunCheck"] :
                 for i in range(1,10):
                     if objGui.tab["Tab %s" % i]["RepeatKeyBox"].GetValue():
@@ -41,7 +41,7 @@ def RepeatKeyThread():
                                 lhtime = objGui.tab["Tab %s" % i]["LastHitTime"] = time.time()
                                 sltime = int(float(objGui.tab["Tab %s" % i]["Sleep"].GetValue()))
                                 for hwnd in objGui.tab["Handler"]:
-                                    if win32gui.IsWindowVisible(hwnd):
+                                    if objGui.tab[hwnd] and win32gui.IsWindowVisible(hwnd):
                                         objKeyBoard.ControlSend(hwnd, objGui.tab["Tab %s" % i]["Key"].GetValue())
                                     else:
                                         objGui.tab["Handler"] = objGui.GetHWND()
@@ -57,14 +57,21 @@ def HotKeyRegistry():
     keyboard.wait("ctrl+esc")
 
 def AddColor(value):
-    objGui.tab["Tab %s" % value]["Color"].append(   
-        objColor.GetPixelColor()
-    )
+    if objGui:
+        objGui.tab["Tab %s" % value]["Color"].append(   
+            objColor.GetPixelColor()
+        )
+    else:
+        pass
 
 def ControlSend(value):
-    if objGui.tab["RunCheck"]:
-        for hwnd in objGui.tab["Handler"]:
-            objKeyBoard.ControlSend(hwnd, value)
+    if objGui:
+        if objGui.tab["RunCheck"]:
+            for hwnd in objGui.tab["Handler"]:
+                if objGui.tab[hwnd] and win32gui.IsWindowVisible(hwnd):
+                    objKeyBoard.ControlSend(hwnd, value)
+                else:
+                    objGui.tab["Handler"] = objGui.GetHWND()
 
 if __name__ == '__main__' and ctypes.windll.shell32.IsUserAnAdmin():
     # Thuc hien threading o day
@@ -72,20 +79,13 @@ if __name__ == '__main__' and ctypes.windll.shell32.IsUserAnAdmin():
     objColor = Color()
     objKeyBoard = Keyboard()
 
-
     app = wx.App(False)
     objGui = UserGui(None, "AutoL2Python")
     # Khai bao cac threading tai day
-    tcolor = threading.Thread(target= ColorCheckThread)
+    tcolor = threading.Thread(target= ColorCheckThread, daemon=True)
     tcolor.start()
-    trepeat = threading.Thread(target= RepeatKeyThread)
+    trepeat = threading.Thread(target= RepeatKeyThread, daemon=True)
     trepeat.start()
-    thotkey = threading.Thread(target= HotKeyRegistry)
+    thotkey = threading.Thread(target= HotKeyRegistry, daemon=True)
     thotkey.start()
     app.MainLoop()
-
-    # Ket thuc threading
-    tcolor.join()
-    trepeat.join()
-    thotkey.join()
-    #AA

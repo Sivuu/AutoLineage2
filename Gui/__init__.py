@@ -14,6 +14,10 @@ class UserGui(wx.Frame):
         self.tab = dict()
         self.tab["RunCheck"] = False
 
+        self.tab["Handler"] = self.GetHWND()
+        for hwnd in self.tab["Handler"]:
+            self.tab[hwnd] = False
+
         # Tab Control ung dung
         self.tab["MainPage"] = wx.Panel(mainpn)
         sizerControl = wx.BoxSizer(wx.HORIZONTAL)
@@ -29,6 +33,7 @@ class UserGui(wx.Frame):
         sizerControl.Add(self.btExit, 0,wx.ALIGN_CENTRE_HORIZONTAL, 0)
         sizerControl.AddStretchSpacer()
         self.tab["MainPage"].SetSizer(sizerControl)
+        # Tab danh cho
 
         # Tab danh cho moi key
         for i in range(9):
@@ -94,16 +99,38 @@ class UserGui(wx.Frame):
         """Event for Run Check when its clicked"""
         if not self.tab["RunCheck"]:
             self.tab["Handler"] = self.GetHWND()
+            self.AskHandle()
             self.tab["RunCheck"] = True
-            self.btRun.SetLabel("Running")
-        else:
-            self.tab["Handler"] = self.GetHWND()
-            self.tab["RunCheck"] = False
             self.btRun.SetLabel("Stop")
+        else:
+            self.tab["RunCheck"] = False
+            self.btRun.SetLabel("Run")
 
     def ExitClick(self, event):
         """Event for Exit Button when its clicked"""
-        pass
+        self.Close()
 
     def ClearColor(self, event, value):
+        """Event for Clear color in tab key"""
         self.tab["Tab %s" % value]["Color"] = list()
+
+    def AskHandle(self):
+        askFrame = wx.Frame(self, id=wx.ID_ANY,title="Select client Lineage 2 to control", size=(460,350))
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        dictCheckBox = dict()
+
+        def CloseFrame(event):
+            for handle in self.tab["Handler"]:
+                self.tab[handle] = dictCheckBox[win32gui.GetWindowText(handle)].GetValue()
+            askFrame.Close()
+
+        for handle in self.tab["Handler"]:
+            dictCheckBox[win32gui.GetWindowText(handle)] = wx.CheckBox(askFrame, id=wx.ID_ANY, label="%s" % win32gui.GetWindowText(handle))
+            sizer.Add(dictCheckBox[win32gui.GetWindowText(handle)])
+            
+
+        okBtn = wx.Button(askFrame, label="OK")
+        okBtn.Bind(wx.EVT_BUTTON, CloseFrame)
+        sizer.Add(okBtn)
+        askFrame.SetSizer(sizer)
+        askFrame.Show(True)
