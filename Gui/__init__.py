@@ -6,16 +6,23 @@ import win32con
 import wx
 import sys
 import base64
+import ntplib
+from datetime import datetime, timezone, timedelta
 #V0wxNVYyQzg=
 
 class UserGui(wx.Frame):
     def __init__(self, parent, title, uuid):
+        # Khai bao phuong thuc bao mat
+        self.encode = uuid
+        f = open(os.path.join(os.path.abspath(os.getcwd()),"key.txt"),"r")
+        keytemp =  base64.b64decode(f.read().encode("utf-8")).decode("utf-8")
+        self.keyCode = keytemp.split(";")[0]
+        self.keyTime = keytemp.split(";")[1] + "+00:00"
+
+        # Khoi tao cua so ung dung
         wx.Frame.__init__(self,parent, title=title, size= wx.Size(460,350))
         mainpn = wx.Panel(self)
         mainnb = wx.Notebook(mainpn)
-        self.encode = base64.b64encode(uuid.encode('utf-8'))
-        f = open(os.path.join(os.path.abspath(os.getcwd()),"key.txt"),"r")
-        self.keyCode = f.read().encode("utf-8")
         self.tab = dict()
         self.tab["RunCheck"] = False
         self.tab["HotKey"] = False
@@ -40,7 +47,6 @@ class UserGui(wx.Frame):
         sizerControl.Add(self.btExit, 0,wx.ALIGN_CENTRE_HORIZONTAL, 0)
         sizerControl.AddStretchSpacer()
         self.tab["MainPage"].SetSizer(sizerControl)
-        # Tab danh cho
 
         # Tab danh cho moi key
         for i in range(9):
@@ -95,6 +101,24 @@ class UserGui(wx.Frame):
         self.CreateStatusBar()
         self.Show(True)
 
+    def TakeNTPTime(self):
+        """ Function to get time from NTP with time zone is utc + 0"""
+        c = ntplib.NTPClient()
+        # Provide the respective ntp server ip in below function
+        response = c.request('uk.pool.ntp.org', version=3)
+        response.offset 
+        # UTC timezone used here, for working with different timezones you can use [pytz library][1]
+        return (datetime.fromtimestamp(response.tx_time, timezone.utc))
+
+    def ConvertStringtoDateTime(self, strconvert):
+        """ Function to convert string time to date time with time zone is utc + 0"""
+        try:
+            dateret = datetime.strptime(strconvert, '%Y-%m-%d %H:%M:%S.%f%z').astimezone(timezone.utc)
+        except:
+            return (self.TakeNTPTime() - timedelta(days=1))
+        else:
+            return dateret 
+
     def CallBack(self, hwnd, hwnds):
         """Return a list of window handlers based on it class name"""
         if win32gui.GetClassName(hwnd) == "L2UnrealWWindowsViewportWindow"\
@@ -110,7 +134,7 @@ class UserGui(wx.Frame):
 
     def RunClick(self, event):
         """Event for Run Check when its clicked"""
-        if (self.encode == self.keyCode):
+        if (self.encode == self.keyCode) and (self.TakeNTPTime() < self.ConvertStringtoDateTime(self.keyTime)):
         # if True:
             if not self.tab["RunCheck"]: 
                 self.tab["RunCheck"] = True
@@ -119,11 +143,11 @@ class UserGui(wx.Frame):
                 self.tab["RunCheck"] = False
                 self.btRun.SetLabel("Run")
         else:
-            wx.MessageBox("Please put correct key to key.txt file in same folder with AutoL2Bot.exe", "Key Code Require", wx.OK)
+            wx.MessageBox("Incorrect key or Time is expired", "New Key Code Require", wx.OK)
 
     def HotKeyClick(self, event):
         """Event for Hot Key when its clicked"""
-        if (self.encode == self.keyCode):
+        if (self.encode == self.keyCode) and (self.TakeNTPTime() < self.ConvertStringtoDateTime(self.keyTime)):
         # if True:
             if not self.tab["HotKey"]:
                 self.tab["HotKey"] = True
@@ -132,7 +156,7 @@ class UserGui(wx.Frame):
                 self.tab["HotKey"] = False
                 self.btHotKey.SetLabel("Run Hot Key")
         else:
-            wx.MessageBox("Please put correct key to key.txt file in same folder with AutoL2Bot.exe", "Key Code Require", wx.OK)
+            wx.MessageBox("Incorrect key or Time is expired", "New Key Code Require", wx.OK)
 
     def ExitClick(self, event):
         """Event for Exit Button when its clicked"""
@@ -143,6 +167,7 @@ class UserGui(wx.Frame):
         self.tab["Tab %s" % value]["Color"] = list()
 
     def GetHandle(self, event, value):
+        """Get Handle for per tab key"""
         askFrame = wx.Frame(self, id=wx.ID_ANY,title="Select L2 Client to disable", size=(460,350))
         sizer = wx.BoxSizer(wx.VERTICAL)
         dictCheckBox = dict()

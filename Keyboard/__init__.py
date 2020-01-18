@@ -3,6 +3,7 @@ import win32api
 import win32gui
 import win32con
 import wx
+import keyboard
 
 
 class Keyboard():
@@ -20,10 +21,18 @@ class Keyboard():
             'f9': 120, 'f10': 121, 'f11': 122, 'f12': 123
         }
 
+    def CheckModifierKey(self):
+        if keyboard.is_pressed('alt')\
+            or keyboard.is_pressed('ctrl')\
+            or keyboard.is_pressed('shift'):
+            return True
+        else:
+            return False
+
     def ControlSend(self, obj, hwnd, key):
         """ Send a key to windows, include it running on background"""
         listkey = key.split(';')
-        if obj[hwnd] and win32gui.IsWindowVisible(hwnd):
+        if obj[hwnd] and win32gui.IsWindowVisible(hwnd) and not self.CheckModifierKey():
             for k in listkey:
                 if k in self.listKeyCode.keys():
                     keyhex = self.listKeyCode[k]

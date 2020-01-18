@@ -30,7 +30,7 @@ def ColorCheckThread():
 def RepeatKeyThread():
     try:
         while objGui:
-            if objGui.tab["RunCheck"] :
+            if objGui.tab["RunCheck"]:
                 for i in range(1,10):
                     if objGui.tab["Tab %s" % i]["RepeatKeyBox"].GetValue():
                         try:
