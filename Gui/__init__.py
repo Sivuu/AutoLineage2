@@ -91,7 +91,7 @@ class UserGui(wx.Frame):
             tabSizer.Add(self.tab["Tab %s" % (i+1)]["ColorCheckBox"], 0, wx.ALL, 5 )
             tabSizer.Add(self.tab["Tab %s" % (i+1)]["ButtonClear"], 0, wx.ALL, 5 )
 
-            mainnb.AddPage(self.tab["Tab %s" % (i+1)]["Panel"], 'Key {}'.format(i+1))
+            mainnb.AddPage(self.tab["Tab %s" % (i+1)]["Panel"], 'Group {}(f{})'.format(i+1,i+1))
             
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(mainnb, 1, wx.EXPAND)
@@ -168,6 +168,7 @@ class UserGui(wx.Frame):
 
     def GetHandle(self, event, value):
         """Get Handle for per tab key"""
+        self.tab["Handler"] = self.GetHWND()
         askFrame = wx.Frame(self, id=wx.ID_ANY,title="Select L2 Client to disable", size=(460,350))
         sizer = wx.BoxSizer(wx.VERTICAL)
         dictCheckBox = dict()
@@ -179,7 +180,7 @@ class UserGui(wx.Frame):
 
         for handle in self.tab["Handler"]:
             dictCheckBox[win32gui.GetWindowText(handle)] = wx.CheckBox(askFrame, id=wx.ID_ANY, label="%s" % win32gui.GetWindowText(handle))
-            dictCheckBox[win32gui.GetWindowText(handle)].SetValue(True)
+            dictCheckBox[win32gui.GetWindowText(handle)].SetValue(False)
             sizer.Add(dictCheckBox[win32gui.GetWindowText(handle)])
             
         okBtn = wx.Button(askFrame, label="OK")

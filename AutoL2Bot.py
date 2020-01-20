@@ -86,7 +86,7 @@ if __name__ == '__main__' and ctypes.windll.shell32.IsUserAnAdmin():
     objKeyBoard = Keyboard()
 
     app = wx.App(False)
-    objGui = UserGui(None, "AutoL2 - %s" % myuuid, myuuid)
+    objGui = UserGui(None, "Loop Macro Lineage 2 - %s" % myuuid, myuuid)
     # Khai bao cac threading tai day
     thotkey = threading.Thread(target= HotKeyRegistry, daemon=True)
     thotkey.start()
