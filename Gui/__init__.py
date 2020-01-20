@@ -9,6 +9,7 @@ import threading
 import base64
 import ntplib
 from datetime import datetime, timezone, timedelta
+from L2Handle import L2Handle
 
 class UserGui(wx.Frame):
     def __init__(self, parent, title):
@@ -21,16 +22,23 @@ class UserGui(wx.Frame):
         self.UIDict = dict()
 
         # Khoi tao cua so ung dung
-        wx.Frame.__init__(self,parent, title=title, size= wx.Size(750,420), style=wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER)
+        wx.Frame.__init__(self,parent, title=title, size= wx.Size(800,420), style=wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER)
         self.CreateStatusBar()
         sizerFrame = wx.GridBagSizer(0,0)
         sizerFrame.SetFlexibleDirection(wx.BOTH)
         sizerFrame.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
 
         # Choice box de lua chon Handle setup cho tool
-        self.UIDict["Handle"] = []
-        self.UIDict["ChoiceHandle"] = wx.Choice( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, self.UIDict["Handle"], 0 )
+        self.UIDict["Handle"] = list()
+        self.UIDict["L2Handle"] = dict()
+        for hwnd in self.GetHWND():
+            title = win32gui.GetWindowText(hwnd)
+            self.UIDict["Handle"].append(title)
+            self.UIDict["L2Handle"]["%s" % str(hwnd)] = L2Handle(hwnd, title)
+
+        self.UIDict["ChoiceHandle"] = wx.Choice( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, self.UIDict["Handle"], 0)
         self.UIDict["ChoiceHandle"].SetSelection( 0 )
+        self.UIDict["ChoiceHandle"].Bind(wx.EVT_CHOICE, self.ChoiceSelected)
         sizerFrame.Add(self.UIDict["ChoiceHandle"], wx.GBPosition( 0, 0 ), wx.GBSpan( 1, 1 ), wx.ALL, 5 )
 
         # Button Start/Run
@@ -41,6 +49,7 @@ class UserGui(wx.Frame):
         sizerFrame.Add(self.UIDict["btGetHandle"] , wx.GBPosition( 3, 0 ), wx.GBSpan( 1, 1 ), wx.ALL, 5 )
         # Button Save Key
         self.UIDict["btSaveKey"] = wx.Button(self, wx.ID_ANY, label='Save Key')
+        self.UIDict["btSaveKey"].Bind(wx.EVT_BUTTON, self.SaveKeyClick)
         sizerFrame.Add(self.UIDict["btSaveKey"] , wx.GBPosition( 4, 0 ), wx.GBSpan( 1, 1 ), wx.ALL, 5 )
         # Button Save Profile
         self.UIDict["btSaveProfile"] = wx.Button(self, wx.ID_ANY, label='Save Profile')
@@ -77,6 +86,7 @@ class UserGui(wx.Frame):
         sizerPanel.Add(pnActiveHotKey,wx.GBPosition(1, 5), wx.GBSpan(1, 1), wx.ALL, 5 )
 
         self.UIDict["CombineKey"] = dict()
+
         for i in range(2,11):
             self.UIDict["CombineKey"]["Key%s" %(i-1)] = dict()
 
@@ -148,6 +158,35 @@ class UserGui(wx.Frame):
         win32gui.EnumWindows(self.CallBack, hwnds)
         return hwnds
 
+    def GetL2Handle(self, title):
+        for l2handle in self.UIDict["L2Handle"].items():
+            if l2handle[1].HandleName == title:
+                return l2handle[1]
+                break
+
+    def ChoiceSelected(self, event):
+        l2f = self.GetL2Handle(self.UIDict["ChoiceHandle"].GetString(self.UIDict["ChoiceHandle"].GetSelection()))
+        self.UIDict["panelHandleName"].SetLabel(self.UIDict["ChoiceHandle"].GetString(self.UIDict["ChoiceHandle"].GetSelection()))
+        for i in range(2,11):
+            self.UIDict["CombineKey"]["Key%s" %(i-1)]["pnKeyName"].SetValue(l2f.DictKeyCombine["Key%s" %(i-1)].Key)
+            self.UIDict["CombineKey"]["Key%s" %(i-1)]["pnRepeat"].SetValue(l2f.DictKeyCombine["Key%s" %(i-1)].RepeatTime)
+            self.UIDict["CombineKey"]["Key%s" %(i-1)]["pnSleep"].SetValue(l2f.DictKeyCombine["Key%s" %(i-1)].SleepTime)
+            self.UIDict["CombineKey"]["Key%s" %(i-1)]["pnActiveRepeat"].SetValue(l2f.DictKeyCombine["Key%s" %(i-1)].ActiveRepeat)
+            self.UIDict["CombineKey"]["Key%s" %(i-1)]["pnActiveColor"].SetValue(l2f.DictKeyCombine["Key%s" %(i-1)].ActiveColor)
+            self.UIDict["CombineKey"]["Key%s" %(i-1)]["pnActiveHotKey"].SetValue(l2f.DictKeyCombine["Key%s" %(i-1)].ActiveHotKey)
+
+    def SaveKeyClick(self, event):
+        l2f = self.GetL2Handle(self.UIDict["ChoiceHandle"].GetString(self.UIDict["ChoiceHandle"].GetSelection()))
+        for i in range(2,11):
+            self.UIDict["L2Handle"][str(l2f.HandleValue)].DictKeyCombine["Key%s" %(i-1)].Key = self.UIDict["CombineKey"]["Key%s" %(i-1)]["pnKeyName"].GetValue()
+            self.UIDict["L2Handle"][str(l2f.HandleValue)].DictKeyCombine["Key%s" %(i-1)].RepeatTime = self.UIDict["CombineKey"]["Key%s" %(i-1)]["pnRepeat"].GetValue()
+            self.UIDict["L2Handle"][str(l2f.HandleValue)].DictKeyCombine["Key%s" %(i-1)].SleepTime = self.UIDict["CombineKey"]["Key%s" %(i-1)]["pnSleep"].GetValue()
+            self.UIDict["L2Handle"][str(l2f.HandleValue)].DictKeyCombine["Key%s" %(i-1)].ActiveRepeat = self.UIDict["CombineKey"]["Key%s" %(i-1)]["pnActiveRepeat"].GetValue()
+            self.UIDict["L2Handle"][str(l2f.HandleValue)].DictKeyCombine["Key%s" %(i-1)].ActiveColor = self.UIDict["CombineKey"]["Key%s" %(i-1)]["pnActiveColor"].GetValue()
+            self.UIDict["L2Handle"][str(l2f.HandleValue)].DictKeyCombine["Key%s" %(i-1)].ActiveHotKey = self.UIDict["CombineKey"]["Key%s" %(i-1)]["pnActiveHotKey"].GetValue()
+
+
+    # TU TU SUA O DAY NHE -------------------  
     def RunClick(self, event):
         """Event for Run Check when its clicked"""
         if self.CheckKeyCode():
@@ -184,29 +223,6 @@ class UserGui(wx.Frame):
     def ClearColor(self, event, value):
         """Event for Clear color in tab key"""
         self.tab["Tab %s" % value]["Color"] = list()
-
-    def GetHandle(self, event, value):
-        """Get Handle for per tab key"""
-        self.tab["Handler"] = self.GetHWND()
-        askFrame = wx.Frame(self, id=wx.ID_ANY,title="Select L2 Client to disable", size=(460,350))
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        dictCheckBox = dict()
-
-        def CloseFrame(event):
-            for handle in self.tab["Handler"]:
-                self.tab["Tab %s" % value][handle] = dictCheckBox[win32gui.GetWindowText(handle)].GetValue()
-            askFrame.Close()
-
-        for handle in self.tab["Handler"]:
-            dictCheckBox[win32gui.GetWindowText(handle)] = wx.CheckBox(askFrame, id=wx.ID_ANY, label="%s" % win32gui.GetWindowText(handle))
-            dictCheckBox[win32gui.GetWindowText(handle)].SetValue(False)
-            sizer.Add(dictCheckBox[win32gui.GetWindowText(handle)])
-            
-        okBtn = wx.Button(askFrame, label="OK")
-        okBtn.Bind(wx.EVT_BUTTON, CloseFrame)
-        sizer.Add(okBtn)
-        askFrame.SetSizer(sizer)
-        askFrame.Show(True)
 
     def ColorCheckThread(self):
         try:
