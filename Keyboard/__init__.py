@@ -1,10 +1,9 @@
 import time
-import win32api
+import wx
+from pykeyboard import keyboard
 import win32gui
 import win32con
-import wx
-import keyboard
-
+import win32api
 
 class Keyboard():
     def __init__(self):
@@ -29,19 +28,17 @@ class Keyboard():
         else:
             return False
 
-    def ControlSend(self, obj, hwnd, key):
+    def ControlSend(self, hwnd, key):
         """ Send a key to windows, include it running on background"""
         listkey = key.split(';')
-        if obj[hwnd] and win32gui.IsWindowVisible(hwnd) and not self.CheckModifierKey():
+        if hwnd and win32gui.IsWindowVisible(hwnd.HandleValue) and not self.CheckModifierKey():
             for k in listkey:
                 if k in self.listKeyCode.keys():
                     keyhex = self.listKeyCode[k]
-                    win32gui.PostMessage(hwnd, win32con.WM_KEYDOWN, keyhex, 0)
-                    win32gui.PostMessage(hwnd, win32con.WM_KEYUP, keyhex, 0)
+                    win32gui.PostMessage(hwnd.HandleValue, win32con.WM_KEYDOWN, keyhex, 0)
+                    win32gui.PostMessage(hwnd.HandleValue, win32con.WM_KEYUP, keyhex, 0)
                 else:
                     return False
-            time.sleep(0.2)
         else:
             return False
         return True
-
