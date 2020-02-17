@@ -5,11 +5,19 @@
     "version": "0.2.0",
     "configurations": [
 
+
         {
             "name": "Python: AutoL2Bot",
             "type": "python",
             "request": "launch",
             "program": "${workspaceRoot}/AutoL2Bot.py",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: ReadMemory",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/ReadMemory.py",
             "console": "integratedTerminal"
         }
     ]
