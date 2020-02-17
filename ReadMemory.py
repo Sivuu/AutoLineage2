@@ -97,8 +97,10 @@ if __name__ == '__main__':
     mp = ReadLineageOffsetValueInt32(process, "Engine.dll", baseEngine, int(0x60)).value
     cp = ReadLineageOffsetValueInt32(process, "Engine.dll", baseEngine, int(0x64)).value
     hppt = dict()
+    mppt = dict()
     baseNWindow = GetBaseAddressModule(mypid, "NWindow.DLL", 0x0134E620)
     for i in range(9):
         hppt[i] = ReadLineageOffsetValueInt32(process, "NWindow.DLL", baseNWindow, int(0x20), int(0x3E8), int(0x214), int(0x444 + i*0x4), int(0x34), int(0x21C)).value
+        mppt[i] = ReadLineageOffsetValueInt32(process, "NWindow.DLL", baseNWindow, int(0x20), int(0x3E8), int(0x214), int(0x46C + i*0x4), int(0x34), int(0xC4), int(0x21C)).value
 
     CloseHandle(process)
