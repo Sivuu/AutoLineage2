@@ -6,7 +6,5 @@ class KeyCombine():
         self.Key = "n%s" % value
         self.RepeatTime = "600"
         self.SleepTime = "2"
-        self.ActiveColor = "None"
         self.ActiveRepeat = False
-        self.ActiveHotKey = True
         self.LastHit = 0

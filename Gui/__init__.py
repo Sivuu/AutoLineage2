@@ -7,6 +7,7 @@ import base64
 import ntplib
 import json
 from pykeyboard import keyboard as kb
+from Memory import Memory
 from pynput import keyboard
 import mouse as ms
 import win32gui
@@ -21,24 +22,23 @@ class UserGui(wx.Frame):
     def __init__(self, parent, title):
         # Khai bao tham so cua GUI
         self.guiKB = Keyboard()
+        self.memREAD = Memory()
         self.lockThread = threading.Lock()
         self.thdRepeat = threading.Thread(target=self.RepeatKeyThread, daemon=True)
-        self.thdColor = threading.Thread(target=self.ColorCheckThread, daemon=True)
+        self.thdInfo = threading.Thread(target=self.InfoCheckThread, daemon=True)
         self.thdHotKey = threading.Thread(target=self.HotKeyRegistry, daemon=True)
-        self.encode = os.popen(
-            "wmic diskdrive get serialnumber").read().split()[-1]
+        self.encode = os.popen("wmic diskdrive get serialnumber").read().split()[-1]
         f = open(os.path.join(os.path.abspath(os.getcwd()), "key.txt"), "r")
         keytemp = base64.b64decode(f.read().encode("utf-8")).decode("utf-8")
         self.keyCode = keytemp.split(";")[0]
         self.keyTime = keytemp.split(";")[1] + "+00:00"
         self.UIDict = dict()
         self.UIDict["ToolRun"] = False
-        self.UIDict["ColorRegistry"] = dict()
-        self.UIDict["ColorRegistry"]['None'] = dict()
-        self.UIDict["ListColor"] = ['None','C1','C2','C3','C4','C5','C6','C7','C8','C9']
+        self.UIDict["HotKey"] = False
+        self.UIDict["HPMPCP"] = False
 
         self.thdRepeat.start()
-        self.thdColor.start()
+        self.thdInfo.start()
         self.thdHotKey.start()
         # self.HotKey()
 
@@ -57,39 +57,43 @@ class UserGui(wx.Frame):
             self.UIDict["Handle"].append(title + ';Not Note')
             self.UIDict["L2Handle"][title] = L2Handle(hwnd, title)
 
-        self.UIDict["ChoiceHandle"] = wx.Choice(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, self.UIDict["Handle"], 0)
+        self.UIDict["ChoiceHandle"] = wx.Choice(self, id=wx.ID_ANY, pos=wx.DefaultPosition, size=(250,30), choices=self.UIDict["Handle"], style=0)
         self.UIDict["ChoiceHandle"].SetSelection(0)
         self.UIDict["ChoiceHandle"].Bind(wx.EVT_CHOICE, self.ChoiceSelected)
         sizerFrame.Add(self.UIDict["ChoiceHandle"], wx.GBPosition(0, 0), wx.GBSpan(1, 1), wx.ALL, 5)
 
-        # Button Start/Run
-        self.UIDict["btRun"] = wx.Button(self, wx.ID_ANY, label='Run', size=(150,30))
-        self.UIDict["btRun"].Bind(wx.EVT_BUTTON, self.RunClick)
-        sizerFrame.Add(self.UIDict["btRun"], wx.GBPosition(2, 0), wx.GBSpan(1, 1), wx.CENTER|wx.ALL, 5)
-
-        # Button Get Handle
-        self.UIDict["btGetHandle"] = wx.Button(
-            self, wx.ID_ANY, label='Get Windows', size=(150,30))
-        self.UIDict["btGetHandle"].Bind(wx.EVT_BUTTON, self.GetHandleClick)
-        sizerFrame.Add(self.UIDict["btGetHandle"], wx.GBPosition(3, 0), wx.GBSpan(1, 1), wx.CENTER|wx.ALL, 5)
+        # Button Load Profile
+        self.UIDict["btLoadProfile"] = wx.Button(self, wx.ID_ANY, label='Load Profile', size=(250,30))
+        self.UIDict["btLoadProfile"].Bind(wx.EVT_BUTTON, self.LoadProfileClick)
+        sizerFrame.Add(self.UIDict["btLoadProfile"], wx.GBPosition(2, 0), wx.GBSpan(1, 1), wx.CENTER|wx.ALL, 5)
 
         # Button Save Profile
-        self.UIDict["btSaveProfile"] = wx.Button(self, wx.ID_ANY, label='Save Profile', size=(150,30))
+        self.UIDict["btSaveProfile"] = wx.Button(self, wx.ID_ANY, label='Save Profile', size=(250,30))
         self.UIDict["btSaveProfile"].Bind(wx.EVT_BUTTON, self.SaveProfileClick)
-        sizerFrame.Add(self.UIDict["btSaveProfile"], wx.GBPosition(4, 0), wx.GBSpan(1, 1), wx.CENTER|wx.ALL, 5)
+        sizerFrame.Add(self.UIDict["btSaveProfile"], wx.GBPosition(3, 0), wx.GBSpan(1, 1), wx.CENTER|wx.ALL, 5)
 
-        # Button Load Profile
-        self.UIDict["btLoadProfile"] = wx.Button(self, wx.ID_ANY, label='Load Profile', size=(150,30))
-        self.UIDict["btLoadProfile"].Bind(wx.EVT_BUTTON, self.LoadProfileClick)
-        sizerFrame.Add(self.UIDict["btLoadProfile"], wx.GBPosition(5, 0), wx.GBSpan(1, 1), wx.CENTER|wx.ALL, 5)
+        # Button Get Handle
+        self.UIDict["btGetHandle"] = wx.Button(self, wx.ID_ANY, label='Get Windows', size=(250,30))
+        self.UIDict["btGetHandle"].Bind(wx.EVT_BUTTON, self.GetHandleClick)
+        sizerFrame.Add(self.UIDict["btGetHandle"], wx.GBPosition(4, 0), wx.GBSpan(1, 1), wx.CENTER|wx.ALL, 5)
+
+        # Button Repeat Key
+        self.UIDict["btRun"] = wx.Button(self, wx.ID_ANY, label='Run', size=(250,30))
+        self.UIDict["btRun"].Bind(wx.EVT_BUTTON, self.RunClick)
+        sizerFrame.Add(self.UIDict["btRun"], wx.GBPosition(5, 0), wx.GBSpan(1, 1), wx.CENTER|wx.ALL, 5)
+
+        # Button Hot Key
+        self.UIDict["btHotKey"] = wx.Button(self, wx.ID_ANY, label='Hot Key', size=(250,30))
+        self.UIDict["btHotKey"].Bind(wx.EVT_BUTTON, self.HotKeyClick)
+        sizerFrame.Add(self.UIDict["btHotKey"], wx.GBPosition(6, 0), wx.GBSpan(1, 1), wx.CENTER|wx.ALL, 5)
+
+        # Button HPMPCP
+        self.UIDict["btHeal"] = wx.Button(self, wx.ID_ANY, label='Heal', size=(250,30))
+        self.UIDict["btHeal"].Bind(wx.EVT_BUTTON, self.HPMPCPClick)
+        sizerFrame.Add(self.UIDict["btHeal"], wx.GBPosition(7, 0), wx.GBSpan(1, 1), wx.CENTER|wx.ALL, 5)
 
         # Button Exit
-        self.UIDict["btListColor"] = wx.Button(self, wx.ID_ANY, label='List Color', size=(150,30))
-        self.UIDict["btListColor"].Bind(wx.EVT_BUTTON, self.ListColorClick)
-        sizerFrame.Add(self.UIDict["btListColor"], wx.GBPosition(6, 0), wx.GBSpan(1, 1), wx.CENTER|wx.ALL, 5)
-
-        # Button Exit
-        self.UIDict["btExit"] = wx.Button(self, wx.ID_ANY, label='Exit', size=(150,30))
+        self.UIDict["btExit"] = wx.Button(self, wx.ID_ANY, label='Exit', size=(250,30))
         self.UIDict["btExit"].Bind(wx.EVT_BUTTON, self.ExitClick)
         sizerFrame.Add(self.UIDict["btExit"], wx.GBPosition(11, 0), wx.GBSpan(1, 1), wx.CENTER|wx.ALL, 5)
 
@@ -108,11 +112,6 @@ class UserGui(wx.Frame):
         sizerPanel.Add(self.UIDict["panelHandleNote"], wx.GBPosition(0,2), wx.GBSpan(1,2), wx.ALL, 5)
 
         # Nhom Label KeyCombine Information
-        # Button Save Key
-        self.UIDict["btSaveKey"] = wx.Button(self.UIDict["panelHandle"],id=wx.ID_ANY, label='Save Key')
-        self.UIDict["btSaveKey"].Bind(wx.EVT_BUTTON, self.SaveKeyClick)
-        sizerPanel.Add(self.UIDict["btSaveKey"], wx.GBPosition(0, 4), wx.GBSpan(1, 2), wx.ALL, 5)
-
         pnKeyName = wx.StaticText(self.UIDict["panelHandle"], id=wx.ID_ANY, label="Key Combine")
         sizerPanel.Add(pnKeyName, wx.GBPosition(1, 0), wx.GBSpan(1, 1), wx.ALL, 5)
         pnRepeat = wx.StaticText(self.UIDict["panelHandle"], id=wx.ID_ANY, label="Repeat Time")
@@ -121,10 +120,6 @@ class UserGui(wx.Frame):
         sizerPanel.Add(pnSleep, wx.GBPosition(1, 2), wx.GBSpan(1, 1), wx.ALL, 5)
         pnActiveRepeat = wx.StaticText(self.UIDict["panelHandle"], id=wx.ID_ANY, label="Repeat")
         sizerPanel.Add(pnActiveRepeat, wx.GBPosition(1, 3), wx.GBSpan(1, 1), wx.ALL, 5)
-        pnActiveColor = wx.StaticText(self.UIDict["panelHandle"], id=wx.ID_ANY, label="Color")
-        sizerPanel.Add(pnActiveColor, wx.GBPosition(1, 4), wx.GBSpan(1, 1), wx.ALL, 5)
-        pnActiveHotKey = wx.StaticText(self.UIDict["panelHandle"], id=wx.ID_ANY, label="HotKey")
-        sizerPanel.Add(pnActiveHotKey, wx.GBPosition(1, 5), wx.GBSpan(1, 1), wx.ALL, 5)
 
         # Form thiet lap thong tin moi key ung voi tung cua so------------------
         self.UIDict["CombineKey"] = dict()
@@ -143,13 +138,15 @@ class UserGui(wx.Frame):
             self.UIDict["CombineKey"]["Key%s" % (i-1)]["pnActiveRepeat"] = wx.CheckBox(self.UIDict["panelHandle"], id=wx.ID_ANY, label="Y/N")
             sizerPanel.Add(self.UIDict["CombineKey"]["Key%s" % (i-1)]["pnActiveRepeat"], wx.GBPosition(i, 3), wx.GBSpan(1, 1), wx.ALL | wx.CENTER, 5)
 
-            self.UIDict["CombineKey"]["Key%s" % (i-1)]["pnActiveColor"] = wx.Choice(self.UIDict["panelHandle"], id=wx.ID_ANY, choices=self.UIDict["ListColor"], style=0)
-            self.UIDict["CombineKey"]["Key%s" % (i-1)]["pnActiveColor"].SetSelection(0)
-            sizerPanel.Add(self.UIDict["CombineKey"]["Key%s" % (i-1)]["pnActiveColor"], wx.GBPosition(i, 4), wx.GBSpan(1, 1), wx.ALL | wx.CENTER, 5)
+        # Button Save Key
+        self.UIDict["btSaveKey"] = wx.Button(self.UIDict["panelHandle"],id=wx.ID_ANY, label='Save Key')
+        self.UIDict["btSaveKey"].Bind(wx.EVT_BUTTON, self.SaveKeyClick)
+        sizerPanel.Add(self.UIDict["btSaveKey"], wx.GBPosition(12, 0), wx.GBSpan(1, 1), wx.ALL, 5)
 
-            self.UIDict["CombineKey"]["Key%s" % (i-1)]["pnActiveHotKey"] = wx.CheckBox(self.UIDict["panelHandle"], id=wx.ID_ANY, label="Y/N")
-            self.UIDict["CombineKey"]["Key%s" % (i-1)]["pnActiveHotKey"].SetValue(True)
-            sizerPanel.Add(self.UIDict["CombineKey"]["Key%s" % (i-1)]["pnActiveHotKey"], wx.GBPosition(i, 5), wx.GBSpan(1, 1), wx.ALL | wx.CENTER, 5)
+        # Button HP/MP/CP
+        self.UIDict["btHPMPCP"] = wx.Button(self.UIDict["panelHandle"],id=wx.ID_ANY, label='HP/MP/CP')
+        self.UIDict["btHPMPCP"].Bind(wx.EVT_BUTTON, self.HPCPMPClick)
+        sizerPanel.Add(self.UIDict["btHPMPCP"], wx.GBPosition(12, 1), wx.GBSpan(1, 1), wx.ALL, 5)
 
         self.UIDict["panelHandle"].SetSizer(sizerPanel)
         self.UIDict["panelHandle"].Layout()
@@ -157,7 +154,7 @@ class UserGui(wx.Frame):
         # Thiet lap Sizer Main-------------------------------------------
         self.SetSizer(sizerFrame)
         sizerFrame.Fit(self)
-        self.SetClientSize(sizerFrame.GetSize() + (5, -100))
+        self.SetClientSize(sizerFrame.GetSize() + (-25, -90))
         self.Show(True)
 
     def TakeNTPTime(self):
@@ -211,7 +208,7 @@ class UserGui(wx.Frame):
                 return l2handle
                 break
 
-    def ChoiceSelected(self, event):       
+    def ChoiceSelected(self, event):    
         self.UpdatePanel()
 
     def UpdateChoiceBox(self):
@@ -230,57 +227,51 @@ class UserGui(wx.Frame):
         title = self.UIDict["ChoiceHandle"].GetString(self.UIDict["ChoiceHandle"].GetSelection()).split(';')[0]
         l2f = self.GetL2Handle(title)
         if l2f:
+            self.lockThread.acquire()
             self.UIDict["panelHandleName"].SetLabel(l2f.HandleName)
             self.UIDict["panelHandleNote"].SetLabel(l2f.HandleNote)
             for i in range(2, 11):
-                self.UIDict["CombineKey"]["Key%s" % (
-                    i-1)]["pnKeyName"].SetValue(l2f.DictKeyCombine["Key%s" % (i-1)].Key)
-                self.UIDict["CombineKey"]["Key%s" % (
-                    i-1)]["pnRepeat"].SetValue(l2f.DictKeyCombine["Key%s" % (i-1)].RepeatTime)
-                self.UIDict["CombineKey"]["Key%s" % (
-                    i-1)]["pnSleep"].SetValue(l2f.DictKeyCombine["Key%s" % (i-1)].SleepTime)
-                self.UIDict["CombineKey"]["Key%s" % (
-                    i-1)]["pnActiveRepeat"].SetValue(l2f.DictKeyCombine["Key%s" % (i-1)].ActiveRepeat)
-                self.UIDict["CombineKey"]["Key%s" % (
-                    i-1)]["pnActiveColor"].Clear()
-                self.UIDict["CombineKey"]["Key%s" % (
-                    i-1)]["pnActiveColor"].AppendItems(self.UIDict["ListColor"])
-                posColorChoice = self.UIDict["CombineKey"]["Key%s" % (
-                    i-1)]["pnActiveColor"].FindString(l2f.DictKeyCombine["Key%s" % (i-1)].ActiveColor)
-                self.UIDict["CombineKey"]["Key%s" % (
-                    i-1)]["pnActiveColor"].SetSelection(posColorChoice)
-                self.UIDict["CombineKey"]["Key%s" % (
-                    i-1)]["pnActiveHotKey"].SetValue(l2f.DictKeyCombine["Key%s" % (i-1)].ActiveHotKey)
+                self.UIDict["CombineKey"]["Key%s" % (i-1)]["pnKeyName"].SetValue(l2f.DictKeyCombine["Key%s" % (i-1)].Key)
+                self.UIDict["CombineKey"]["Key%s" % (i-1)]["pnRepeat"].SetValue(l2f.DictKeyCombine["Key%s" % (i-1)].RepeatTime)
+                self.UIDict["CombineKey"]["Key%s" % (i-1)]["pnSleep"].SetValue(l2f.DictKeyCombine["Key%s" % (i-1)].SleepTime)
+                self.UIDict["CombineKey"]["Key%s" % (i-1)]["pnActiveRepeat"].SetValue(l2f.DictKeyCombine["Key%s" % (i-1)].ActiveRepeat)
+            self.lockThread.release()
 
     def RunClick(self, event):
         """Event for Run Check when its clicked"""
-        if self.CheckKeyCode():
-            # if True:
-            if not self.UIDict["ToolRun"]:
+        if not self.UIDict["ToolRun"]:
+            if self.CheckKeyCode():
                 self.UIDict["ToolRun"] = True
-                self.UIDict["btRun"].SetLabel("Stop")
+                self.UIDict["btRun"].SetLabel("Auto: On")
             else:
-                self.UIDict["ToolRun"] = False
-                self.UIDict["btRun"].SetLabel("Run")
+                wx.MessageBox("Incorrect key or Time is expired", "New Key Code Require", wx.OK)
         else:
-            wx.MessageBox("Incorrect key or Time is expired", "New Key Code Require", wx.OK)
+            self.UIDict["ToolRun"] = False
+            self.UIDict["btRun"].SetLabel("Auto: Off")
 
     def GetHandleClick(self, event):
-        self.lockThread.acquire()
+        """Get new handle if new windows is open"""
+        
         for hwnd in self.GetHWND():
             title = win32gui.GetWindowText(hwnd)      
             if self.UIDict["L2Handle"].get(title) == None:
+                self.lockThread.acquire()
                 self.UIDict["Handle"].append(title + ';Not Note')
                 self.UIDict["L2Handle"][title] = L2Handle(hwnd, title)
                 self.UIDict["ChoiceHandle"].Append(title)
+                self.lockThread.release()
             elif self.UIDict["L2Handle"][title].HandleValue == 0:
+                self.lockThread.acquire()
                 self.UIDict["L2Handle"][title].HandleValue = hwnd
+                self.lockThread.release()
         self.RemoveHandleNotUsed()
         self.UpdateChoiceBox()
         self.UpdatePanel()
         self.lockThread.release()
 
     def RemoveHandleNotUsed(self):
+        """Remove the handle that is not use from UIDict"""
+        
         listH = list()
         for h in self.GetHWND():
             listH.append(win32gui.GetWindowText(h))
@@ -288,41 +279,37 @@ class UserGui(wx.Frame):
         dictTemp = list(self.UIDict["L2Handle"])
         for title in dictTemp:
             if not (title in listH) and (title in self.UIDict["Handle"]):
+                self.lockThread.acquire()
                 fullTitle = title + ';' + self.UIDict["L2Handle"][title].HandleNote
                 self.UIDict["Handle"].remove(fullTitle)
                 self.UIDict["ChoiceHandle"].Delete(self.UIDict["ChoiceHandle"].FindString(title))
+                self.lockThread.release()     
 
     def SaveKeyClick(self, event):
-        self.lockThread.acquire()
-        title = self.UIDict["ChoiceHandle"].GetString(self.UIDict["ChoiceHandle"].GetSelection()).split(';')[0]
+        """Event for Save Key"""
+        old = self.UIDict["ChoiceHandle"].GetString(self.UIDict["ChoiceHandle"].GetSelection())
+        title = old.split(';')[0]
         l2f = self.GetL2Handle(title)
         self.UIDict["L2Handle"][str(l2f.HandleName)].HandleNote =  self.UIDict["panelHandleNote"].GetValue()
         newtitle = title + ';' + self.UIDict["panelHandleNote"].GetValue()
+        for num in range(len(self.UIDict["Handle"])):
+            if self.UIDict["Handle"][num] == old:
+                self.UIDict["Handle"][num] = newtitle
         self.UIDict["ChoiceHandle"].SetString(self.UIDict["ChoiceHandle"].GetSelection(), newtitle)
+                
         for i in range(2, 11):
-            self.UIDict["L2Handle"][str(l2f.HandleName)].DictKeyCombine["Key%s" % (
-                i-1)].Key = self.UIDict["CombineKey"]["Key%s" % (i-1)]["pnKeyName"].GetValue()
-            self.UIDict["L2Handle"][str(l2f.HandleName)].DictKeyCombine["Key%s" % (
-                i-1)].RepeatTime = self.UIDict["CombineKey"]["Key%s" % (i-1)]["pnRepeat"].GetValue()
-            self.UIDict["L2Handle"][str(l2f.HandleName)].DictKeyCombine["Key%s" % (
-                i-1)].SleepTime = self.UIDict["CombineKey"]["Key%s" % (i-1)]["pnSleep"].GetValue()
-            self.UIDict["L2Handle"][str(l2f.HandleName)].DictKeyCombine["Key%s" % (
-                i-1)].ActiveRepeat = self.UIDict["CombineKey"]["Key%s" % (i-1)]["pnActiveRepeat"].GetValue()
-            # Nhan ve gia tri Active Color dang dict
-            tempStr = self.UIDict["CombineKey"]["Key%s" % (i-1)]["pnActiveColor"].GetStringSelection()
-            if tempStr != 'None' and tempStr:
-                self.UIDict["L2Handle"][str(l2f.HandleName)].DictKeyCombine["Key%s" % (
-                    i-1)].ActiveColor = tempStr
-            else:
-                self.UIDict["L2Handle"][str(l2f.HandleName)].DictKeyCombine["Key%s" % (
-                    i-1)].ActiveColor = "None"
-            self.UIDict["L2Handle"][str(l2f.HandleName)].DictKeyCombine["Key%s" % (
-                i-1)].ActiveHotKey = self.UIDict["CombineKey"]["Key%s" % (i-1)]["pnActiveHotKey"].GetValue()  
-        self.lockThread.release()
+            self.lockThread.acquire()
+            self.UIDict["L2Handle"][str(l2f.HandleName)].DictKeyCombine["Key%s" % (i-1)].Key = self.UIDict["CombineKey"]["Key%s" % (i-1)]["pnKeyName"].GetValue()
+            self.UIDict["L2Handle"][str(l2f.HandleName)].DictKeyCombine["Key%s" % (i-1)].RepeatTime = self.UIDict["CombineKey"]["Key%s" % (i-1)]["pnRepeat"].GetValue()
+            self.UIDict["L2Handle"][str(l2f.HandleName)].DictKeyCombine["Key%s" % (i-1)].SleepTime = self.UIDict["CombineKey"]["Key%s" % (i-1)]["pnSleep"].GetValue()
+            self.UIDict["L2Handle"][str(l2f.HandleName)].DictKeyCombine["Key%s" % (i-1)].ActiveRepeat = self.UIDict["CombineKey"]["Key%s" % (i-1)]["pnActiveRepeat"].GetValue()  
+            self.lockThread.release()
 
     def SaveProfileClick(self, event):
+        """Event for save profiles"""
+        self.lockThread.acquire()
         fileDict = dict()
-        fileDict["ColorRegistry"] = self.UIDict["ColorRegistry"]
+        fileDict["Handle"] = self.UIDict["Handle"]
         for key, l2 in self.UIDict["L2Handle"].items():
             fileDict[key] = dict()
             fileDict[key]["HandleName"] = l2.HandleName
@@ -330,28 +317,29 @@ class UserGui(wx.Frame):
             fileDict[key]["HandleNote"] = l2.HandleNote
             fileDict[key]["ActiveTime"] = l2.ActiveTime
             fileDict[key]["Active"] = l2.Active
+            fileDict[key]["Condition"] = l2.Condition
             fileDict[key]["DictKeyCombine"]= dict()
             for i in range(1,10):
                 fileDict[key]["DictKeyCombine"]["Key%s" % i] = dict()
                 fileDict[key]["DictKeyCombine"]["Key%s" % i]["Key"] = l2.DictKeyCombine["Key%s" % i].Key
                 fileDict[key]["DictKeyCombine"]["Key%s" % i]["RepeatTime"] = l2.DictKeyCombine["Key%s" % i].RepeatTime
                 fileDict[key]["DictKeyCombine"]["Key%s" % i]["SleepTime"] = l2.DictKeyCombine["Key%s" % i].SleepTime
-                fileDict[key]["DictKeyCombine"]["Key%s" % i]["ActiveColor"] = l2.DictKeyCombine["Key%s" % i].ActiveColor
                 fileDict[key]["DictKeyCombine"]["Key%s" % i]["ActiveRepeat"] = l2.DictKeyCombine["Key%s" % i].ActiveRepeat
-                fileDict[key]["DictKeyCombine"]["Key%s" % i]["ActiveHotKey"] = l2.DictKeyCombine["Key%s" % i].ActiveHotKey
                 fileDict[key]["DictKeyCombine"]["Key%s" % i]["LastHit"] = 0 # l2.DictKeyCombine["Key%s" % i].LastHit
 
         with open("l2config.json", "w") as l2config:
             json.dump(fileDict, l2config)
+        self.lockThread.release()
 
     def LoadProfileClick(self, event): 
+        """Event for load profiles"""
         tempDict = dict()
         with open(os.path.join(os.path.abspath(os.getcwd()), "l2config.json"), "r") as l2config:
             if os.stat(os.path.join(os.path.abspath(os.getcwd()), "l2config.json")).st_size != 0:
                 tempDict = json.load(l2config)
-                self.UIDict["ColorRegistry"] = tempDict["ColorRegistry"]
+                self.UIDict["Handle"] = tempDict["Handle"]
                 for key, l2 in tempDict.items():
-                    if key != "ColorRegistry":
+                    if key != "Handle":
                         if self.UIDict["L2Handle"].get(key) == None:
                             self.UIDict["L2Handle"][key] = L2Handle(win32gui.FindWindowEx(None,None,None,key), key)
                             
@@ -360,53 +348,117 @@ class UserGui(wx.Frame):
                         self.UIDict["L2Handle"][key].HandleNote = tempDict[key]["HandleNote"]
                         self.UIDict["L2Handle"][key].ActiveTime = tempDict[key]["ActiveTime"]
                         self.UIDict["L2Handle"][key].Active = tempDict[key]["Active"]
+                        self.UIDict["L2Handle"][key].Condition = tempDict[key]["Condition"]
                         for k, kc in tempDict[key]["DictKeyCombine"].items():
                             self.UIDict["L2Handle"][key].DictKeyCombine[k].Key = kc["Key"]
                             self.UIDict["L2Handle"][key].DictKeyCombine[k].RepeatTime = kc["RepeatTime"]
                             self.UIDict["L2Handle"][key].DictKeyCombine[k].SleepTime = kc["SleepTime"]
-                            self.UIDict["L2Handle"][key].DictKeyCombine[k].ActiveColor = kc["ActiveColor"]
                             self.UIDict["L2Handle"][key].DictKeyCombine[k].ActiveRepeat = kc["ActiveRepeat"]
                             self.UIDict["L2Handle"][key].DictKeyCombine[k].LastHit = 0 # kc["LastHit"]
 
         self.UpdateChoiceBox()
         self.UpdatePanel()
 
-    def ListColorClick(self, event):
-        cFrame = wx.Frame(None, title="List Color")
-        sizer = wx.BoxSizer(wx.VERTICAL)
+    def HotKeyClick(self, event):
+        """Event for Hot Key when its clicked"""
+        if not self.UIDict["HotKey"]:
+            if self.CheckKeyCode():
+                self.UIDict["HotKey"] = True
+                self.UIDict["btHotKey"].SetLabel("Hot Key: On")
+            else:
+                wx.MessageBox("Incorrect key or Time is expired", "New Key Code Require", wx.OK)
+        else:
+            self.UIDict["HotKey"] = False
+            self.UIDict["btHotKey"].SetLabel("Hot Key: Off")
+
+    def HPMPCPClick(self, event):
+        """Event for HPMPCP when its clicked"""
+        # if True:
+        if not self.UIDict["HPMPCP"]:
+            if self.CheckKeyCode():
+                self.UIDict["HPMPCP"] = True
+                self.UIDict["btHeal"].SetLabel("Heal: On")
+            else:
+                wx.MessageBox("Incorrect key or Time is expired", "New Key Code Require", wx.OK)
+        else:
+            self.UIDict["HPMPCP"] = False
+            self.UIDict["btHeal"].SetLabel("Heal: Off")
+
+
+    def HPCPMPClick(self, event):
+        """Event for Info Button"""
         
-        for key, item in self.UIDict["ColorRegistry"].items():
-            if item:
-                label = wx.StaticText(cFrame, id=wx.ID_ANY, label= key +' : ('+ str(item["x"]) + ',' + str(item["y"]) + '): ' + str(item["color"]))
-                sizer.Add(label)
+        title = self.UIDict["ChoiceHandle"].GetString(self.UIDict["ChoiceHandle"].GetSelection()).split(';')[0]
+        note = self.UIDict["ChoiceHandle"].GetString(self.UIDict["ChoiceHandle"].GetSelection())
+        l2f = self.GetL2Handle(title)
+        cFrame = wx.Frame(None, title="Setup for %s" % self.UIDict["ChoiceHandle"].GetString(self.UIDict["ChoiceHandle"].GetSelection()))
+        sizerInfo = wx.GridBagSizer(0, 0)
+        sizerInfo.SetFlexibleDirection(wx.BOTH)
+        sizerInfo.SetNonFlexibleGrowMode(wx.FLEX_GROWMODE_SPECIFIED)
+        cbCharName = wx.Choice(cFrame, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize, choices=self.UIDict["Handle"], style=0)
+        sizerInfo.Add(cbCharName, wx.GBPosition(0, 0), wx.GBSpan(1, 1), wx.ALL | wx.CENTER, 5)
+        lbValue = wx.StaticText(cFrame, id=wx.ID_ANY, label="Value: ")
+        sizerInfo.Add(lbValue, wx.GBPosition(0, 1), wx.GBSpan(1, 1), wx.ALL | wx.CENTER, 5)
+        lbKey = wx.StaticText(cFrame, id=wx.ID_ANY, label="Key: ")
+        sizerInfo.Add(lbKey, wx.GBPosition(0, 2), wx.GBSpan(1, 1), wx.ALL | wx.CENTER, 5)
 
-        def okClick(event):
+        # HP Select
+        lbHP = wx.StaticText(cFrame, id=wx.ID_ANY, label="HP <= ")
+        sizerInfo.Add(lbHP, wx.GBPosition(1, 0), wx.GBSpan(1, 1), wx.ALL | wx.CENTER, 5)
+        tcHP = wx.TextCtrl(cFrame, id=wx.ID_ANY, value=str(l2f.Condition["HPHeal"]))
+        sizerInfo.Add(tcHP, wx.GBPosition(1, 1), wx.GBSpan(1, 1), wx.ALL | wx.CENTER, 5)
+        tcHPKey = wx.TextCtrl(cFrame, id=wx.ID_ANY, value=l2f.Condition["HPKey"])
+        sizerInfo.Add(tcHPKey, wx.GBPosition(1, 2), wx.GBSpan(1, 1), wx.ALL | wx.CENTER, 5)
+
+        # MP Select
+        lbMP = wx.StaticText(cFrame, id=wx.ID_ANY, label="MP <= ")
+        sizerInfo.Add(lbMP, wx.GBPosition(2, 0), wx.GBSpan(1, 1), wx.ALL | wx.CENTER, 5)
+        tcMP = wx.TextCtrl(cFrame, id=wx.ID_ANY, value=str(l2f.Condition["MPRecharge"]))
+        sizerInfo.Add(tcMP, wx.GBPosition(2, 1), wx.GBSpan(1, 1), wx.ALL | wx.CENTER, 5)
+        tcMPKey = wx.TextCtrl(cFrame, id=wx.ID_ANY, value=l2f.Condition["MPKey"])
+        sizerInfo.Add(tcMPKey, wx.GBPosition(2, 2), wx.GBSpan(1, 1), wx.ALL | wx.CENTER, 5)
+
+        # CP Select
+        lbCP = wx.StaticText(cFrame, id=wx.ID_ANY, label="CP <= ")
+        sizerInfo.Add(lbCP, wx.GBPosition(3, 0), wx.GBSpan(1, 1), wx.ALL | wx.CENTER, 5)
+        tcCP = wx.TextCtrl(cFrame, id=wx.ID_ANY, value=str(l2f.Condition["CPHeal"]))
+        sizerInfo.Add(tcCP, wx.GBPosition(3, 1), wx.GBSpan(1, 1), wx.ALL | wx.CENTER, 5)
+        tcCPKey = wx.TextCtrl(cFrame, id=wx.ID_ANY, value=l2f.Condition["CPKey"])
+        sizerInfo.Add(tcCPKey, wx.GBPosition(3, 2), wx.GBSpan(1, 1), wx.ALL | wx.CENTER, 5)
+
+        def SaveHPMPCP(event):
+            self.lockThread.acquire()
+            tit = cbCharName.GetString(cbCharName.GetSelection()).split(';')[0]
+            handle = self.GetL2Handle(tit)
+            l2f.Condition["Char"] = handle.HandleName
+            l2f.Condition["HPHeal"] = tcHP.GetValue()
+            l2f.Condition["HPKey"] = tcHPKey.GetValue()
+            l2f.Condition["MPRecharge"] = tcMP.GetValue()
+            l2f.Condition["MPKey"] = tcMPKey.GetValue()
+            l2f.Condition["CPHeal"] = tcCP.GetValue()
+            l2f.Condition["CPKey"] = tcCPKey.GetValue()
+            self.lockThread.release()
             cFrame.Close()
 
-        def clearClick(event):
-            self.UIDict["ColorRegistry"] = dict()
-            cFrame.Close()
+        # Button Save Info
+        btSave = wx.Button(cFrame, id=wx.ID_ANY, label="Save", style=0)
+        btSave.Bind(wx.EVT_BUTTON, SaveHPMPCP)
+        sizerInfo.Add(btSave, wx.GBPosition(4, 1), wx.GBSpan(1, 1), wx.ALL | wx.CENTER, 5)
 
-        okBtn = wx.Button(cFrame, id=wx.ID_ANY, label="OK")
-        okBtn.Bind(wx.EVT_BUTTON, okClick)
-        sizer.Add(okBtn)
-
-        clearBtn = wx.Button(cFrame, id=wx.ID_ANY, label="Clear")
-        clearBtn.Bind(wx.EVT_BUTTON, clearClick)
-        sizer.Add(clearBtn)
-
-        cFrame.SetSizer(sizer)
+        cFrame.SetSizer(sizerInfo)
+        sizerInfo.Fit(cFrame)
+        cFrame.SetClientSize(sizerInfo.GetSize() + (5, 5))
         cFrame.Show(True)
-
+        
     def ExitClick(self, event):
         """Event for Exit Button when its clicked"""
         self.Close()
 
     def RepeatKeyThread(self):
+        """Function to processing Repeat Key"""
         try:
             while True:
-                if self.UIDict["ToolRun"]:
-                    self.lockThread.acquire()
+                if self.UIDict["ToolRun"] and not self.guiKB.CheckModifierKey():
                     for nhwnd, hwnd in self.UIDict["L2Handle"].items():
                         for nkey, key in hwnd.DictKeyCombine.items():
                             if key.ActiveRepeat:
@@ -418,17 +470,15 @@ class UserGui(wx.Frame):
                                     key.LastHit = time.time()
                                     slTime = int(float(key.SleepTime))
                                     hwnd.ActiveTime = time.time() + slTime
-                                    self.guiKB.ControlSend(hwnd, key.Key)
-                    self.lockThread.release()
+                                    self.guiKB.ControlSend(hwnd, key.Key)     
                 time.sleep(0.1)
 
         except NameError as er:
             print("Error in Repeat key thread is: %s" % (er))
 
     def HotKeyRegistry(self):
+        """Hot key repeat"""
         kb.add_hotkey('ctrl+s', self.RunClick, args=[0])
-        for i in range(1, 10):
-            kb.add_hotkey('ctrl+%s' % i, self.AddColor, args=[i])
         kb.add_hotkey((79), self.ControlSend, args=[1], suppress=True)
         kb.add_hotkey((80), self.ControlSend, args=[2], suppress=True)
         kb.add_hotkey((81), self.ControlSend, args=[3], suppress=True)
@@ -440,72 +490,42 @@ class UserGui(wx.Frame):
         kb.add_hotkey((73), self.ControlSend, args=[9], suppress=True)
         kb.wait("ctrl+shift+end")
 
-    # def HotKey(self):
-    #     ls = keyboard.Listener(on_press = self.onPress, daemon=True)
-    #     ls.start()
-
-    # def onPress(self, key):
-    #     if hasattr(key, 'vk'):
-    #         if key.vk == 97:
-    #             self.ControlSend(1)
-    #         elif key.vk == 98:
-    #             self.ControlSend(2)
-    #         elif key.vk == 99:
-    #             self.ControlSend(3)
-    #         elif key.vk == 100:
-    #             self.ControlSend(4)
-    #         elif key.vk == 101:
-    #             self.ControlSend(5)
-    #         elif key.vk == 102:
-    #             self.ControlSend(6)
-    #         elif key.vk == 103:
-    #             self.ControlSend(7)
-    #         elif key.vk == 104:
-    #             self.ControlSend(8)
-    #         elif key.vk == 105:
-    #             self.ControlSend(9)
-
     def ControlSend(self, value):
-        self.lockThread.acquire()
-        for name, hwnd in self.UIDict["L2Handle"].items():
-            if hwnd.DictKeyCombine["Key%s" % value].ActiveHotKey:
+        """Send key when hotkey is pressed"""
+        if self.UIDict["HotKey"] and self.guiKB.CheckModifierKey():
+            for name, hwnd in self.UIDict["L2Handle"].items():
+                self.lockThread.acquire()
                 key = hwnd.DictKeyCombine["Key%s" % value].Key
                 slTime = int(float(hwnd.DictKeyCombine["Key%s" % value].SleepTime))
                 hwnd.ActiveTime = time.time() + slTime
+                self.lockThread.release()
                 self.guiKB.ControlSend(hwnd, "n%s" % value)
-        self.lockThread.release()
 
-    # Tam thoi khoa tinh nang color check de remake-----------------------
-    def AddColor(self, value):
-        self.lockThread.acquire()
-        newColor = Color()
-        newColor.Init()
-        self.UIDict["ColorRegistry"]["C%s" % value] = dict()
-        self.UIDict["ColorRegistry"]["C%s" % value]["x"] = newColor.x
-        self.UIDict["ColorRegistry"]["C%s" % value]["y"] = newColor.y
-        self.UIDict["ColorRegistry"]["C%s" % value]["color"] = newColor.color
-        self.lockThread.release()
-
-
-    def ClearColor(self, event, value):
-        """Event for Clear color in tab key"""
-        self.UIDict["ColorRegistry"] = dict()
-
-    def ColorCheckThread(self):
-        checkColor = Color()
+    def InfoCheckThread(self):
+        """Threading for healing/ recharging"""
         try:
-            while True: # Tam thoi khoa tinh nang color check de remake
-                if self.UIDict["ToolRun"]:
-                    self.lockThread.acquire()
-                    for nhwnd, hwnd in self.UIDict["L2Handle"].items():
-                        for nkey, key in hwnd.DictKeyCombine.items():
-                            if key.ActiveColor != 'None' and self.UIDict["ColorRegistry"].get(key.ActiveColor) != None:
-                                x = self.UIDict["ColorRegistry"][key.ActiveColor]["x"]
-                                y = self.UIDict["ColorRegistry"][key.ActiveColor]["y"]
-                                color = self.UIDict["ColorRegistry"][key.ActiveColor]["color"]
-                                if not checkColor.CheckPixelColor(x, y, color):
-                                    self.guiKB.ControlSend(hwnd, key.Key)
-                    self.lockThread.release()
-                time.sleep(0.1)
+            while True:
+                if self.UIDict["HPMPCP"] and not self.guiKB.CheckModifierKey():
+                    for nhwnd, l2client in self.UIDict["L2Handle"].items():
+                        if win32gui.IsWindowVisible(l2client.HandleValue):
+                            self.lockThread.acquire()
+                            baseAddress = self.memREAD.GetBaseAddressModule(l2client.PID, "Engine.dll", 0x01F9E3D8)
+                            l2client.HP = self.memREAD.ReadLineageOffsetValueInt32(l2client.PID, "Engine.dll", baseAddress, int(0x5C)).value
+                            l2client.MP = self.memREAD.ReadLineageOffsetValueInt32(l2client.PID, "Engine.dll", baseAddress, int(0x60)).value
+                            l2client.CP = self.memREAD.ReadLineageOffsetValueInt32(l2client.PID, "Engine.dll", baseAddress, int(0x64)).value
+                            self.lockThread.release()
+
+                    for nhwnd, l2client in self.UIDict["L2Handle"].items():
+                        if l2client.Condition["Char"] and win32gui.IsWindowVisible(l2client.HandleValue):
+                            l2target = self.GetL2Handle(l2client.Condition["Char"])
+                            if win32gui.IsWindowVisible(l2target.HandleValue):
+                                if l2target.HP > 0 and l2target.HP < int(l2client.Condition["HPHeal"]) and l2client.Condition["HPKey"] != "Notset":
+                                    self.guiKB.ControlSend(l2client, l2client.Condition["HPKey"])
+                                if l2target.MP > 0 and l2target.HP < int(l2client.Condition["MPRecharge"]) and l2client.Condition["MPKey"] != "Notset":
+                                    self.guiKB.ControlSend(l2client, l2client.Condition["MPKey"])
+                                if l2target.CP > 0 and l2target.HP < int(l2client.Condition["CPHeal"]) and l2client.Condition["CPKey"] != "Notset":
+                                    self.guiKB.ControlSend(l2client, l2client.Condition["CPKey"])                                                                
+                    
+                time.sleep(1)
         except NameError as er:
-            print("Error in color check thread is: %s" % (er))
+            print("Error in healing/recharging thread is: %s" % (er))
