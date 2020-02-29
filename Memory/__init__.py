@@ -39,44 +39,49 @@ class Memory():
         pass
 
     def GetBaseAddressModule(self, ProcessID, ModuleName, FirstOffSet):
-        hModuleSnap = c_void_p(0)
-        moduleEntry = MODULEENTRY32()
-        moduleEntry.dwSize = sizeof(MODULEENTRY32)
-        hModuleSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, ProcessID )
+        returnAddress = c_int32()
+        bytesRead = c_int32()
+        try:
+            hModuleSnap = c_void_p(0)
+            moduleEntry = MODULEENTRY32()
+            moduleEntry.dwSize = sizeof(MODULEENTRY32)
 
-        ret = Module32First(hModuleSnap, byref(moduleEntry))
-        if ret == 0 :
-            print ('ListProcessModules() Error on Module32First[%d]' % GetLastError())
-            CloseHandle( hModuleSnap )
-            return False
+            hModuleSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, ProcessID)
 
-        while ret :
-            compare = ModuleName.encode()
-            if moduleEntry.szModule == compare:
-                process = OpenProcess(0x10, False, ProcessID)
-                returnAddress = c_int32()
-                bytesRead = c_int32()
-                # int(0x01F9E3D8) is add value from baseAddress of "Engine.dll"
-                ReadProcessMemory(process, addressof(moduleEntry.modBaseAddr.contents) + int(FirstOffSet), byref(returnAddress), sizeof(returnAddress), byref(bytesRead))
-                # Return value int of modBaseAddr that using in ReadProcessMemory
-                # Just add offset to get correct data value like HP/CP/MP ...
+            ret = Module32First(hModuleSnap, byref(moduleEntry))
+            if ret == 0:
+                print('ListProcessModules() Error on Module32First[%d]' % GetLastError())
+                CloseHandle(hModuleSnap)
                 return returnAddress.value 
-            ret = Module32Next(hModuleSnap, byref(moduleEntry))
+            while ret:
+                compare = ModuleName.encode()
+                if moduleEntry.szModule == compare:
+                    process = OpenProcess(0x10, False, ProcessID) 
+                    # int(0x01F9E3D8) is add value from baseAddress of "Engine.dll"
+                    ReadProcessMemory(process, addressof(moduleEntry.modBaseAddr.contents) + int(FirstOffSet), byref(returnAddress), sizeof(returnAddress), byref(bytesRead))
+                    # Return value int of modBaseAddr that using in ReadProcessMemory
+                    # Just add offset to get correct data value like HP/CP/MP ...
+                ret = Module32Next(hModuleSnap, byref(moduleEntry))
+            CloseHandle(hModuleSnap)
+            return returnAddress.value  
+        except ValueError as ver:
+            print("Error: %s." % ver)
+            return returnAddress.value 
 
-
-        CloseHandle(hModuleSnap)
-        return False  
-
-    def ReadLineageOffsetValueInt32(self, ProcessID, ModuleName, StartAddress, *OffSetList):
+    def ReadLineageOffsetValueInt32(self, ProcessID, StartAddress, *OffSetList):
         #Viet ham doc phan cap offset, chu y la cu moi offset trong Cheat Engine tuong ung mot con tro
         retValue = 0
         offsetAddressNext = StartAddress
-        process = OpenProcess(0x10, False, ProcessID)
-        for offsets in OffSetList:
-            value = c_int32()
-            # Address truyen cho ReadProcessMemory co the la so int, hex...
-            ReadProcessMemory(process, offsetAddressNext + offsets, byref(value), sizeof(value), None)
-            retValue = value
-            offsetAddressNext = value.value
-        return retValue
-
+        try:
+            process = OpenProcess(0x10, False, ProcessID)
+            for offsets in OffSetList:
+                value = c_int32()
+                # Address truyen cho ReadProcessMemory co the la so int, hex...
+                ReadProcessMemory(process, offsetAddressNext + offsets, byref(value), sizeof(value), None)
+                retValue = value
+                offsetAddressNext = value.value
+                CloseHandle(process)
+            return retValue
+        except NameError as er:
+            print("Error %s" % er)
+            return retValue

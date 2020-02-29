@@ -11,7 +11,6 @@ class L2Handle():
         self.HandleName = title
         self.HandleValue = handle
         self.PID = win32process.GetWindowThreadProcessId(handle)[1]
-
         self.HandleNote = "Not Note"
         self.ActiveTime = time.time()
         self.Active = False
