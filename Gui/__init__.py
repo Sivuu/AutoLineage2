@@ -531,10 +531,10 @@ class UserGui(wx.Frame):
             if self.UIDict["HPMPCP"] and not self.guiKB.CheckModifierKey():
                 for nhwnd, l2client in self.UIDict["L2Handle"].items():
                     if win32gui.IsWindowVisible(l2client.HandleValue):
-                        baseAddress = self.memREAD.GetBaseAddressModule(l2client.PID, "NWindow.DLL", int(0x0027E204))
-                        l2client.HP = self.memREAD.ReadLineageOffsetValueInt32(l2client.PID, baseAddress, int(0x8), int(0x8), int(0x1C), int(0x220)).value
-                        l2client.MP = self.memREAD.ReadLineageOffsetValueInt32(l2client.PID, baseAddress, int(0x8), int(0x8), int(0x1C), int(0x820)).value
-                        l2client.CP = self.memREAD.ReadLineageOffsetValueInt32(l2client.PID, baseAddress, int(0x8), int(0x8), int(0x1C), int(0x620)).value
+                        baseAddress = self.memREAD.GetBaseAddressModule(l2client.PID, "L2.bin", 0x00290B74)
+                        l2client.HP = self.memREAD.ReadLineageOffsetValueInt32(l2client.PID, baseAddress, 0xC, 0x220).value
+                        l2client.MP = self.memREAD.ReadLineageOffsetValueInt32(l2client.PID, baseAddress, 0xC, 0x820).value
+                        l2client.CP = self.memREAD.ReadLineageOffsetValueInt32(l2client.PID, baseAddress, 0xC, 0x620).value
 
                 for nhwnd, l2client in self.UIDict["L2Handle"].items():
                     if l2client.Condition["Char"] and win32gui.IsWindowVisible(l2client.HandleValue):
