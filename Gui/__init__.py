@@ -215,6 +215,11 @@ class UserGui(wx.Frame):
     def ChoiceSelected(self, event):    
         self.UpdatePanel()
 
+    def UpdateHandle(self):
+        self.UIDict["Handle"].clear()
+        for items in self.UIDict["ChoiceHandle"].Items:
+            self.UIDict["Handle"].append(items)
+
     def UpdateChoiceBox(self):
         self.UIDict["ChoiceHandle"].Clear()
         for hwnd in self.GetHWND():
@@ -310,65 +315,68 @@ class UserGui(wx.Frame):
 
     def SaveProfileClick(self, event):
         """Event for save profiles"""
-        # Open File Dialog
-        OpenFile = wx.FileDialog(self, "Select Profile","","","Json file (*.json)|*.json", wx.FD_OPEN|wx.FD_FILE_MUST_EXIST)
-        OpenFile.ShowModal()
-        path = OpenFile.GetPath()
-
-        # Processing
-        self.lockThread.acquire()
-        fileDict = dict()
-        fileDict["Handle"] = self.UIDict["Handle"]
-        for key, l2 in self.UIDict["L2Handle"].items():
-            fileDict[key] = dict()
-            fileDict[key]["HandleName"] = l2.HandleName
-            # fileDict[key]["HandleValue"] = l2.HandleValue
-            fileDict[key]["HandleNote"] = l2.HandleNote
-            fileDict[key]["ActiveTime"] = l2.ActiveTime
-            fileDict[key]["Active"] = l2.Active
-            fileDict[key]["Condition"] = l2.Condition
-            fileDict[key]["DictKeyCombine"]= dict()
-            for i in range(1,10):
-                fileDict[key]["DictKeyCombine"]["Key%s" % i] = dict()
-                fileDict[key]["DictKeyCombine"]["Key%s" % i]["Key"] = l2.DictKeyCombine["Key%s" % i].Key
-                fileDict[key]["DictKeyCombine"]["Key%s" % i]["RepeatTime"] = l2.DictKeyCombine["Key%s" % i].RepeatTime
-                fileDict[key]["DictKeyCombine"]["Key%s" % i]["SleepTime"] = l2.DictKeyCombine["Key%s" % i].SleepTime
-                fileDict[key]["DictKeyCombine"]["Key%s" % i]["ActiveRepeat"] = l2.DictKeyCombine["Key%s" % i].ActiveRepeat
-                fileDict[key]["DictKeyCombine"]["Key%s" % i]["LastHit"] = 0 # l2.DictKeyCombine["Key%s" % i].LastHit
-
-        with open(path, "w") as l2config:
-            json.dump(fileDict, l2config)
-        self.lockThread.release()
+        # Save File Dialog    
+        with wx.FileDialog(self, "Select Profile", wildcard="Json file (*.json)|*.json",style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as SaveFile:
+            if SaveFile.ShowModal() == wx.ID_CANCEL:
+                return
+            path = SaveFile.GetPath()
+            # Processing
+            self.lockThread.acquire()
+            fileDict = dict()
+            fileDict["Handle"] = self.UIDict["Handle"]
+            for key, l2 in self.UIDict["L2Handle"].items():
+                fileDict[key] = dict()
+                fileDict[key]["HandleName"] = l2.HandleName
+                # fileDict[key]["HandleValue"] = l2.HandleValue
+                fileDict[key]["HandleNote"] = l2.HandleNote
+                fileDict[key]["ActiveTime"] = l2.ActiveTime
+                fileDict[key]["Active"] = l2.Active
+                fileDict[key]["Condition"] = l2.Condition
+                fileDict[key]["DictKeyCombine"]= dict()
+                for i in range(1,10):
+                    fileDict[key]["DictKeyCombine"]["Key%s" % i] = dict()
+                    fileDict[key]["DictKeyCombine"]["Key%s" % i]["Key"] = l2.DictKeyCombine["Key%s" % i].Key
+                    fileDict[key]["DictKeyCombine"]["Key%s" % i]["RepeatTime"] = l2.DictKeyCombine["Key%s" % i].RepeatTime
+                    fileDict[key]["DictKeyCombine"]["Key%s" % i]["SleepTime"] = l2.DictKeyCombine["Key%s" % i].SleepTime
+                    fileDict[key]["DictKeyCombine"]["Key%s" % i]["ActiveRepeat"] = l2.DictKeyCombine["Key%s" % i].ActiveRepeat
+                    fileDict[key]["DictKeyCombine"]["Key%s" % i]["LastHit"] = 0 # l2.DictKeyCombine["Key%s" % i].LastHit
+            self.lockThread.release()
+            try:
+                with open(path, "w") as l2config:
+                    json.dump(fileDict, l2config)
+            except IOError:
+                wx.LogError("Cannot save current data in file '%s'." % path)
 
     def LoadProfileClick(self, event): 
         """Event for load profiles"""
         # Open File Dialog
-        OpenFile = wx.FileDialog(self, "Select Profile", "", "", "Json file (*.json)|*.json", wx.FD_OPEN|wx.FD_FILE_MUST_EXIST)
-        OpenFile.ShowModal()
-        path = OpenFile.GetPath()
-        # Processing
-        tempDict = dict()
-        with open(path, "r") as l2config:
-            if os.stat(path).st_size != 0:
-                tempDict = json.load(l2config)
-                self.UIDict["Handle"] = tempDict["Handle"]
-                for key, l2 in tempDict.items():
-                    if key != "Handle":
-                        if self.UIDict["L2Handle"].get(key) == None:
-                            self.UIDict["L2Handle"][key] = L2Handle(win32gui.FindWindowEx(None,None,None,key), key)
-                            
-                        self.UIDict["L2Handle"][key].HandleName = tempDict[key]["HandleName"]
-                        # self.UIDict["L2Handle"][key].HandleValue = win32gui.FindWindowEx(None,None,None,key)
-                        self.UIDict["L2Handle"][key].HandleNote = tempDict[key]["HandleNote"]
-                        self.UIDict["L2Handle"][key].ActiveTime = tempDict[key]["ActiveTime"]
-                        self.UIDict["L2Handle"][key].Active = tempDict[key]["Active"]
-                        self.UIDict["L2Handle"][key].Condition = tempDict[key]["Condition"]
-                        for k, kc in tempDict[key]["DictKeyCombine"].items():
-                            self.UIDict["L2Handle"][key].DictKeyCombine[k].Key = kc["Key"]
-                            self.UIDict["L2Handle"][key].DictKeyCombine[k].RepeatTime = kc["RepeatTime"]
-                            self.UIDict["L2Handle"][key].DictKeyCombine[k].SleepTime = kc["SleepTime"]
-                            self.UIDict["L2Handle"][key].DictKeyCombine[k].ActiveRepeat = kc["ActiveRepeat"]
-                            self.UIDict["L2Handle"][key].DictKeyCombine[k].LastHit = 0 # kc["LastHit"]
+        with wx.FileDialog(self, "Select Profile", "", "", "Json file (*.json)|*.json", wx.FD_OPEN|wx.FD_FILE_MUST_EXIST) as OpenFile:
+            if OpenFile.ShowModal() ==  wx.ID_CANCEL:
+                return
+            path = OpenFile.GetPath()
+            # Processing
+            tempDict = dict()
+            with open(path, "r") as l2config:
+                if os.stat(path).st_size != 0:
+                    tempDict = json.load(l2config)
+                    self.UIDict["Handle"] = tempDict["Handle"]
+                    for key, l2 in tempDict.items():
+                        if key != "Handle":
+                            if self.UIDict["L2Handle"].get(key) == None:
+                                self.UIDict["L2Handle"][key] = L2Handle(win32gui.FindWindowEx(None,None,None,key), key)
+                                
+                            self.UIDict["L2Handle"][key].HandleName = tempDict[key]["HandleName"]
+                            # self.UIDict["L2Handle"][key].HandleValue = win32gui.FindWindowEx(None,None,None,key)
+                            self.UIDict["L2Handle"][key].HandleNote = tempDict[key]["HandleNote"]
+                            self.UIDict["L2Handle"][key].ActiveTime = tempDict[key]["ActiveTime"]
+                            self.UIDict["L2Handle"][key].Active = tempDict[key]["Active"]
+                            self.UIDict["L2Handle"][key].Condition = tempDict[key]["Condition"]
+                            for k, kc in tempDict[key]["DictKeyCombine"].items():
+                                self.UIDict["L2Handle"][key].DictKeyCombine[k].Key = kc["Key"]
+                                self.UIDict["L2Handle"][key].DictKeyCombine[k].RepeatTime = kc["RepeatTime"]
+                                self.UIDict["L2Handle"][key].DictKeyCombine[k].SleepTime = kc["SleepTime"]
+                                self.UIDict["L2Handle"][key].DictKeyCombine[k].ActiveRepeat = kc["ActiveRepeat"]
+                                self.UIDict["L2Handle"][key].DictKeyCombine[k].LastHit = 0 # kc["LastHit"]
 
         self.UpdateChoiceBox()
         self.UpdatePanel()
@@ -408,6 +416,7 @@ class UserGui(wx.Frame):
         sizerInfo = wx.GridBagSizer(0, 0)
         sizerInfo.SetFlexibleDirection(wx.BOTH)
         sizerInfo.SetNonFlexibleGrowMode(wx.FLEX_GROWMODE_SPECIFIED)
+        self.UpdateHandle()
         cbCharName = wx.Choice(cFrame, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize, choices=self.UIDict["Handle"], style=0)
         sizerInfo.Add(cbCharName, wx.GBPosition(0, 0), wx.GBSpan(1, 1), wx.ALL | wx.CENTER, 5)
         lbValue = wx.StaticText(cFrame, id=wx.ID_ANY, label="Value: ")
@@ -493,7 +502,7 @@ class UserGui(wx.Frame):
 
     def HotKeyRegistry(self):
         """Hot key repeat"""
-        kb.add_hotkey('ctrl+s', self.RunClick, args=[0])
+        kb.add_hotkey('ctrl+s', self.RunClick, args=[0], suppress=True)
         kb.add_hotkey((79), self.ControlSend, args=[1], suppress=True)
         kb.add_hotkey((80), self.ControlSend, args=[2], suppress=True)
         kb.add_hotkey((81), self.ControlSend, args=[3], suppress=True)
@@ -522,10 +531,10 @@ class UserGui(wx.Frame):
             if self.UIDict["HPMPCP"] and not self.guiKB.CheckModifierKey():
                 for nhwnd, l2client in self.UIDict["L2Handle"].items():
                     if win32gui.IsWindowVisible(l2client.HandleValue):
-                        baseAddress = self.memREAD.GetBaseAddressModule(l2client.PID, "Engine.dll", 0x01F9E3D8)
-                        l2client.HP = self.memREAD.ReadLineageOffsetValueInt32(l2client.PID, baseAddress, int(0x5C)).value
-                        l2client.MP = self.memREAD.ReadLineageOffsetValueInt32(l2client.PID, baseAddress, int(0x60)).value
-                        l2client.CP = self.memREAD.ReadLineageOffsetValueInt32(l2client.PID, baseAddress, int(0x64)).value
+                        baseAddress = self.memREAD.GetBaseAddressModule(l2client.PID, "NWindow.DLL", int(0x0027E204))
+                        l2client.HP = self.memREAD.ReadLineageOffsetValueInt32(l2client.PID, baseAddress, int(0x8), int(0x8), int(0x1C), int(0x220)).value
+                        l2client.MP = self.memREAD.ReadLineageOffsetValueInt32(l2client.PID, baseAddress, int(0x8), int(0x8), int(0x1C), int(0x820)).value
+                        l2client.CP = self.memREAD.ReadLineageOffsetValueInt32(l2client.PID, baseAddress, int(0x8), int(0x8), int(0x1C), int(0x620)).value
 
                 for nhwnd, l2client in self.UIDict["L2Handle"].items():
                     if l2client.Condition["Char"] and win32gui.IsWindowVisible(l2client.HandleValue):
