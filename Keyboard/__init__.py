@@ -36,7 +36,7 @@ class Keyboard():
                 if k in self.listKeyCode.keys():
                     keyhex = self.listKeyCode[k]
                     win32gui.PostMessage(hwnd.HandleValue, win32con.WM_KEYDOWN, keyhex, 0)
-                    win32gui.PostMessage(hwnd.HandleValue, win32con.WM_KEYUP, keyhex, 0)
+                    # win32gui.PostMessage(hwnd.HandleValue, win32con.WM_KEYUP, keyhex, 0)
                 else:
                     return False
         else:

@@ -11,6 +11,7 @@ class L2Handle():
         self.HandleName = title
         self.HandleValue = handle
         self.PID = win32process.GetWindowThreadProcessId(handle)[1]
+        #self.BaseAddress
         self.HandleNote = "Not Note"
         self.ActiveTime = time.time()
         self.Active = False
@@ -28,3 +29,4 @@ class L2Handle():
         self.Condition["CPKey"] = "Notset"
         for i in range(1, 10):
             self.DictKeyCombine["Key%s" % i] = KeyCombine(i)
+        self.Mark = False

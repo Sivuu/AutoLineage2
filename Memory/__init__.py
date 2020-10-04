@@ -60,7 +60,7 @@ class Memory():
 
             ret = Module32First(hModuleSnap, byref(moduleEntry))
             if ret == 0:
-                print('ListProcessModules() Error on Module32First[%d]' % GetLastError())
+                # print('ListProcessModules() Error on Module32First[%d]' % GetLastError())
                 CloseHandle(hModuleSnap)
                 return returnAddress.value 
             while ret:
