@@ -1,17 +1,19 @@
 import time
 import win32gui, win32process
 from ctypes import *
-
+from Memory import Memory
 from KeyCombine import KeyCombine
 
 
 class L2Handle():
 
     def __init__(self, handle, title):
+        self.memREAD = Memory()
         self.HandleName = title
         self.HandleValue = handle
         self.PID = win32process.GetWindowThreadProcessId(handle)[1]
-        #self.BaseAddress
+        # Moi khi chinh sua bo nho game sau update thi phai nho sua dia chi offset o day !
+        self.BaseAddress = self.memREAD.GetBaseAddressModule(self.PID, "NWindow.DLL", 0x01320C1C)
         self.HandleNote = "Not Note"
         self.ActiveTime = time.time()
         self.Active = False

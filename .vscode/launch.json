@@ -12,10 +12,10 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "Python: AutoL2Bot",
+            "name": "Python: RazorMacro",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceRoot}/AutoL2Bot.py",
+            "program": "${workspaceRoot}/RazorMacro.py",
             "console": "integratedTerminal"
         },
         {
