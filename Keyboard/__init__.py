@@ -34,7 +34,8 @@ class Keyboard():
         if hwnd and win32gui.IsWindowVisible(hwnd.HandleValue) and not self.CheckModifierKey():
             for k in listkey:
                 if k in self.listKeyCode.keys():
-                    win32gui.PostMessage(hwnd.HandleValue, win32con.WM_KEYDOWN, 27, 0)
+                    esckey = self.listKeyCode['esc']
+                    win32gui.PostMessage(hwnd.HandleValue, win32con.WM_KEYDOWN, esckey, 0)
                     keyhex = self.listKeyCode[k]
                     win32gui.PostMessage(hwnd.HandleValue, win32con.WM_KEYDOWN, keyhex, 0)
                 else:

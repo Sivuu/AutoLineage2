@@ -26,10 +26,10 @@ class UserGui(wx.Frame):
         self.memREAD = Memory()
         self.lockThread = threading.Lock()
         self.thdRepeat = threading.Thread(target=self.RepeatKeyThread, daemon=True)
-        self.thdHeal = threading.Thread(target=self.HealCheckThread, daemon=True)
+        # self.thdHeal = threading.Thread(target=self.HealCheckThread, daemon=True)
         self.thdHotKey = threading.Thread(target=self.HotKeyRegistry, daemon=True)
-        self.thdMark = threading.Thread(target=self.MarkThread, daemon=True)
-        self.encode = os.popen("wmic diskdrive get serialnumber").read().split()[-1]
+        # self.thdMark = threading.Thread(target=self.MarkThread, daemon=True)
+        self.encode = 0 #os.popen("wmic diskdrive get serialnumber").read().split()[-1]
         f = open(os.path.join(os.path.abspath(os.getcwd()), "key.txt"), "r")
         keytemp = base64.b64decode(f.read().encode("utf-8")).decode("utf-8")
         self.keyCode = keytemp.split(";")[0]
@@ -195,8 +195,7 @@ class UserGui(wx.Frame):
 
     def CheckKeyCode(self):
         """ Kiem tra KeyCode co hop le"""
-        self.encode = os.popen(
-            "wmic diskdrive get serialnumber").read().split()[-1]
+        self.encode = 0 #os.popen("wmic diskdrive get serialnumber").read().split()[-1]
         f = open(os.path.join(os.path.abspath(os.getcwd()), "key.txt"), "r")
         keytemp = base64.b64decode(f.read().encode("utf-8")).decode("utf-8")
         self.keyCode = keytemp.split(";")[0]
